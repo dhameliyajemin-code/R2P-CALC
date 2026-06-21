@@ -982,35 +982,10 @@
                 <span class="icon">📊</span> AI Analysis
             </button>
             <button class="dash-btn dash-btn-master" onclick="showView('admin')">
-                <span class="icon">⚙</span> Masters
+                <span class="icon">⚙</span> Admin
             </button>
             <button id="installBtn" class="dash-btn dash-btn-master" style="background:linear-gradient(135deg,#059669,#10b981);display:none;" onclick="promptInstall()">
                 <span class="icon">📲</span> Install App
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- MASTERS VIEW -->
-<div class="view" id="view-masters">
-    <div class="top-bar">
-        <button class="back-btn" onclick="showView('admin')">←</button>
-        <span class="title">Masters</span>
-        <span class="spacer"></span>
-    </div>
-    <div class="container">
-        <div class="dash-menu" style="padding:10px 0;">
-            <button class="dash-btn dash-btn-master" onclick="openArticleMaster()">
-                <span class="icon">▤</span> Rough Article Master
-            </button>
-            <button class="dash-btn dash-btn-cost" onclick="showView('whatsappmaster')" style="background:linear-gradient(135deg,#25d366,#1da851);">
-                <span class="icon">💬</span> WhatsApp Text Master
-            </button>
-            <button class="dash-btn dash-btn-data" onclick="showView('datasync')">
-                <span class="icon">☁</span> Data Sync
-            </button>
-            <button class="dash-btn dash-btn-master" onclick="openPinOverlay()" style="background:linear-gradient(135deg,#e67e22,#d35400);">
-                <span class="icon">🔑</span> Admin PIN
             </button>
         </div>
     </div>
@@ -3186,12 +3161,24 @@
     }
 
     function searchViewEntry(id) {
-        closeViewEntry();
-        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].id === id) { _viewEntryIdx = i; break; }
-        }
-        showViewEntry();
+        showView('olddata');
+        // Highlight and scroll to the matching row
+        setTimeout(function() {
+            var checks = document.querySelectorAll('.entry-check');
+            for (var i = 0; i < checks.length; i++) {
+                if (checks[i].getAttribute('data-id') === id) {
+                    checks[i].checked = true;
+                    var row = checks[i].closest('tr');
+                    if (row) {
+                        row.style.background = 'var(--gold-highlight)';
+                        row.scrollIntoView({behavior:'smooth', block:'center'});
+                        setTimeout(function() { row.style.background = ''; }, 2500);
+                    }
+                    break;
+                }
+            }
+            updateSelectionBar();
+        }, 100);
     }
 
     /* ───── AI ANALYSIS ───── */
