@@ -10,30 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg-crystal: #fcfdfd;
-            --lb-light: #f5efe6;
-            --lb-mid: #e8dcce;
-            --lb-deep: #8c7662;
-            --text-dark: #2c2520;
-            --border-shimmer: #dcd6cd;
-            --input-focus: #bda28a;
-            --success-clean: #4b6b5a;
-            --whatsapp-color: #25d366;
-            --gold-highlight: #f7e7b4;
-            --gold-border: #d4a843;
-        }
-        .theme-sapphire {
-            --bg-crystal: #f0f4fa;
-            --lb-light: #dce6f0;
-            --lb-mid: #b8cce0;
-            --lb-deep: #3a5a7a;
-            --text-dark: #1a2a3a;
-            --border-shimmer: #a8bcd0;
-            --input-focus: #5a7a9a;
-            --success-clean: #1e5a7a;
-            --gold-highlight: #d4e4f4;
-            --gold-border: #3a7aba;
-        }
 
         * {
             box-sizing: border-box;
@@ -1109,14 +1085,6 @@
             <button onclick="newCostSheet()" style="width:100%;height:40px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.85rem;">+ Add New Cost</button>
         </div>
 
-        <!-- Theme -->
-        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
-            <h3 style="font-size:0.85rem;margin-bottom:6px;">🎨 Theme</h3>
-            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">
-                <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)"> Sapphire Blue Theme
-            </label>
-        </div>
-
         <!-- Masters Section -->
         <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
             <h3 style="font-size:0.85rem;margin-bottom:6px;">▤ Rough Article Master</h3>
@@ -1701,14 +1669,6 @@
         var val = localStorage.getItem('autoFillDefaults') === '1';
         if (af) af.checked = val;
         if (afs) afs.checked = val;
-        // Theme toggle
-        var tt = document.getElementById('themeToggle');
-        if (tt) tt.checked = localStorage.getItem('sapphireTheme') === '1';
-    }
-
-    function toggleTheme(on) {
-        document.body.classList.toggle('theme-sapphire', on);
-        localStorage.setItem('sapphireTheme', on ? '1' : '0');
     }
 
     function newCostSheet() {
@@ -3037,10 +2997,6 @@
         document.getElementById('dashSearch').addEventListener('input', dashSearchLive);
         // Sync admin UI
         syncDefaultsUI();
-        // Apply theme
-        if (localStorage.getItem('sapphireTheme') === '1') {
-            document.body.classList.add('theme-sapphire');
-        }
     };
 
     /* ───── PWA ───── */
