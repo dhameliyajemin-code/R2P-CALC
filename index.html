@@ -85,19 +85,54 @@
         /* Dashboard */
         .dash-logo {
             text-align: center;
-            padding: 30px 0 10px 0;
+            padding: 24px 0 10px 0;
+            position: relative;
         }
-        .dash-logo h1 {
-            font-size: 1.5rem;
+        .dash-logo::before {
+            content: '💎';
+            position: absolute;
+            left: 50%; top: 4px;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+        .dash-logo .rough-text {
+            font-size: 1.6rem;
             font-weight: 900;
-            color: var(--lb-deep);
-            letter-spacing: 1px;
+            background: linear-gradient(135deg, #3d2e1e 0%, #6b5440 30%, #a0845c 55%, #d4a849 80%, #3d2e1e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            text-shadow: none;
+            display: inline-block;
+            position: relative;
         }
-        .dash-logo p {
-            font-size: 0.8rem;
-            color: var(--lb-deep);
-            opacity: 0.7;
-            margin-top: 4px;
+        .dash-logo .rough-text::after {
+            content: '💎';
+            font-size: 0.5rem;
+            margin-left: 4px;
+            -webkit-text-fill-color: initial;
+        }
+        .dash-logo .calc-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #0f172a;
+            background: linear-gradient(135deg, #334155, #64748b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 6px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #94a3b8;
+            border-radius: 6px;
+            padding: 2px 12px;
+            display: inline-block;
+            margin-top: 2px;
+            background: #f1f5f9;
+            -webkit-text-fill-color: #0f172a;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1);
         }
         .dash-menu {
             display: flex;
@@ -896,8 +931,19 @@
 <div class="view active" id="view-dashboard">
     <div class="container">
         <div class="dash-logo">
-            <h1>Rough to Polish</h1>
-            <p>Calc</p>
+            <h1><span class="rough-text">Rough to Polish</span></h1>
+            <p><span class="calc-text">CALC</span></p>
+        </div>
+        <!-- Android Download App -->
+        <div id="androidInstallBanner" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;color:#fff;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:1.4rem;">📲</span>
+                <div>
+                    <div style="font-weight:800;font-size:0.8rem;">R2P Calc App</div>
+                    <div style="font-size:0.6rem;opacity:0.9;">Install on your device for offline use</div>
+                </div>
+            </div>
+            <button id="androidInstallBtn" onclick="promptInstall()" style="background:#fff;color:#1b5e20;border:none;border-radius:20px;padding:6px 16px;font-weight:800;font-size:0.7rem;cursor:pointer;white-space:nowrap;">Install</button>
         </div>
         <!-- Search bar -->
         <div style="position:relative;margin-bottom:12px;">
@@ -2802,9 +2848,9 @@
             start_url: '.',
             display: 'standalone',
             background_color: '#f4f6f8',
-            theme_color: '#1b3a5c',
+            theme_color: '#1b5e20',
             icons: [{
-                src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#1b3a5c"/><text x="24" y="32" text-anchor="middle" font-size="28" fill="white" font-family="sans-serif">💎</text></svg>'),
+                src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#1b5e20"/><text x="24" y="32" text-anchor="middle" font-size="28" fill="white" font-family="sans-serif">💎</text></svg>'),
                 sizes: '48x48',
                 type: 'image/svg+xml'
             }]
@@ -2824,23 +2870,30 @@
             navigator.serviceWorker.register(swUrl, {scope: '/'});
         } catch(e) {}
 
+        var banner = document.getElementById('androidInstallBanner');
+        var bannerBtn = document.getElementById('androidInstallBtn');
+
         // Listen for install prompt
         window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
             _deferredPrompt = e;
-            var btn = document.getElementById('installBtn');
-            if (btn) btn.style.display = '';
+            if (banner) banner.style.display = 'flex';
         });
         window.addEventListener('appinstalled', function() {
             _deferredPrompt = null;
-            var btn = document.getElementById('installBtn');
-            if (btn) btn.style.display = 'none';
+            if (banner) banner.style.display = 'none';
         });
-        // Also show install btn on iOS (manual instructions)
+        // Hide if already standalone
+        if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
+            if (banner) banner.style.display = 'none';
+        }
+        // iOS manual instructions
         var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        if (isIOS && !navigator.standalone) {
-            var btn = document.getElementById('installBtn');
-            if (btn) { btn.style.display = ''; btn.innerHTML = '<span class="icon">📲</span> Install (iOS: Share → Add to Home Screen)'; }
+        if (isIOS && !navigator.standalone && banner) {
+            banner.style.display = 'flex';
+            banner.style.background = 'linear-gradient(135deg,#1e3a5f,#1b5e20)';
+            bannerBtn.innerText = 'Guide';
+            bannerBtn.onclick = function() { alert('Tap Share → Add to Home Screen'); };
         }
     }
 
@@ -2849,8 +2902,12 @@
             _deferredPrompt.prompt();
             _deferredPrompt.userChoice.then(function() {
                 _deferredPrompt = null;
-                document.getElementById('installBtn').style.display = 'none';
+                var banner = document.getElementById('androidInstallBanner');
+                if (banner) banner.style.display = 'none';
             });
+        } else {
+            // Fallback: show instructions
+            alert('To install, open in Chrome browser → tap menu ⋮ → "Add to Home Screen" or "Install App"');
         }
     }
 
