@@ -1004,10 +1004,84 @@
                     <button class="action-btn btn-download" onclick="compareLoad('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">Load</button>
                     <button class="action-btn btn-wa-text" onclick="compareWA('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">WA</button>
                     <button class="action-btn" onclick="compareImg('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;background:var(--success-clean);">Img</button>
+            </div>
+        </div>
+
+        <!-- Article Comparison -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
+            <div onclick="var n=this.nextElementSibling;n.style.display=n.style.display==='none'?'block':'none'" style="display:flex;justify-content:space-between;cursor:pointer;user-select:none;">
+                <h3 style="font-size:0.85rem;">📈 Article Comparison</h3><span style="font-size:0.7rem;">▼</span>
+            </div>
+            <div style="display:none;margin-top:6px;">
+                <p style="font-size:0.65rem;color:var(--lb-deep);margin-bottom:4px;">Select 2-3 articles. Chart shows MFG across Rough Amnt/CT range.</p>
+                <div id="acCheckboxes" style="font-size:0.7rem;margin-bottom:4px;max-height:60px;overflow-y:auto;"></div>
+                <div style="display:flex;gap:4px;margin-bottom:4px;">
+                    <input type="number" id="acMin" value="10" step="1" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;" placeholder="Min $">
+                    <input type="number" id="acMax" value="50" step="1" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;" placeholder="Max $">
+                    <input type="number" id="acStep" value="5" step="1" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;" placeholder="Step">
                 </div>
+                <button onclick="runArticleComparison()" style="width:100%;height:30px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.65rem;">Generate Chart</button>
+                <div style="height:160px;margin-top:4px;"><canvas id="acChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Trend Analysis -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:8px;">
+            <div onclick="var n=this.nextElementSibling;n.style.display=n.style.display==='none'?'block':'none'" style="display:flex;justify-content:space-between;cursor:pointer;user-select:none;">
+                <h3 style="font-size:0.85rem;">📉 Trend Analysis</h3><span style="font-size:0.7rem;">▼</span>
+            </div>
+            <div style="display:none;margin-top:6px;">
+                <p style="font-size:0.65rem;color:var(--lb-deep);margin-bottom:4px;">Month-over-month MFG trend per article with next-month prediction.</p>
+                <button onclick="runTrendAnalysis()" style="width:100%;height:30px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.65rem;">Show Trends</button>
+                <div id="trendResults" style="margin-top:4px;"></div>
+                <div style="height:160px;margin-top:4px;"><canvas id="trendChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Price Sensitivity -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:8px;">
+            <div onclick="var n=this.nextElementSibling;n.style.display=n.style.display==='none'?'block':'none'" style="display:flex;justify-content:space-between;cursor:pointer;user-select:none;">
+                <h3 style="font-size:0.85rem;">🔄 Price Sensitivity</h3><span style="font-size:0.7rem;">▼</span>
+            </div>
+            <div style="display:none;margin-top:6px;">
+                <p style="font-size:0.65rem;color:var(--lb-deep);margin-bottom:4px;">See how a % change in Rough Amnt/CT affects each article's MFG.</p>
+                <div style="display:flex;gap:4px;margin-bottom:4px;">
+                    <input type="number" id="psChange" value="-5" step="1" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;">
+                    <button onclick="runPriceSensitivity()" style="height:28px;background:#e67e22;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;font-size:0.6rem;padding:0 10px;">Analyze</button>
+                </div>
+                <div id="psResults" style="font-size:0.7rem;"></div>
+            </div>
+        </div>
+
+        <!-- Consistency Score -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:8px;">
+            <div onclick="var n=this.nextElementSibling;n.style.display=n.style.display==='none'?'block':'none'" style="display:flex;justify-content:space-between;cursor:pointer;user-select:none;">
+                <h3 style="font-size:0.85rem;">🏅 Consistency Score</h3><span style="font-size:0.7rem;">▼</span>
+            </div>
+            <div style="display:none;margin-top:6px;">
+                <p style="font-size:0.65rem;color:var(--lb-deep);margin-bottom:4px;">Which articles have the most stable (lowest variance) MFG output.</p>
+                <button onclick="runConsistencyScore()" style="width:100%;height:30px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.65rem;">Score Articles</button>
+                <div id="csResults" style="margin-top:4px;font-size:0.7rem;"></div>
+            </div>
+        </div>
+
+        <!-- ROI Calculator -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:8px;margin-bottom:6px;">
+            <div onclick="var n=this.nextElementSibling;n.style.display=n.style.display==='none'?'block':'none'" style="display:flex;justify-content:space-between;cursor:pointer;user-select:none;">
+                <h3 style="font-size:0.85rem;">💰 ROI Calculator</h3><span style="font-size:0.7rem;">▼</span>
+            </div>
+            <div style="display:none;margin-top:6px;">
+                <p style="font-size:0.65rem;color:var(--lb-deep);margin-bottom:4px;">Estimate profit per article given rough cost & polished sale price.</p>
+                <div style="display:flex;gap:4px;margin-bottom:4px;">
+                    <input type="number" id="roiRoughCt" value="28" step="0.01" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;" placeholder="Rough $/ct">
+                    <input type="number" id="roiPolishCt" value="120" step="1" style="flex:1;height:28px;border:1px solid var(--border-shimmer);border-radius:4px;padding:0 6px;font-size:0.65rem;" placeholder="Polish $/ct">
+                </div>
+                <button onclick="runROICalc()" style="width:100%;height:30px;background:#d4a849;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.65rem;">Calculate ROI</button>
+                <div id="roiResults" style="margin-top:4px;font-size:0.7rem;"></div>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <!-- AI ANALYSIS VIEW -->
@@ -1637,6 +1711,15 @@
                 label.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:2px 6px;background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:4px;';
                 label.innerHTML = '<input type="checkbox" value="' + a + '" onchange="runAIAnalysis()"> ' + a;
                 cbContainer.appendChild(label);
+            });
+            // Populate article comparison checkboxes
+            var acContainer = document.getElementById('acCheckboxes');
+            acContainer.innerHTML = '';
+            arts.forEach(function(a) {
+                var label = document.createElement('label');
+                label.style.cssText = 'display:inline-flex;align-items:center;gap:2px;cursor:pointer;padding:2px 6px;background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:4px;';
+                label.innerHTML = '<input type="checkbox" value="' + a + '"> ' + a;
+                acContainer.appendChild(label);
             });
             runAIAnalysis();
         }
@@ -3438,6 +3521,249 @@
         th += '</tbody></table>';
         document.getElementById('whatIfTable').innerHTML = th;
         document.getElementById('whatIfResults').style.display = 'block';
+    }
+
+    /* ───── ARTICLE COMPARISON ───── */
+    var _acChart = null;
+    function runArticleComparison() {
+        var checks = document.querySelectorAll('#acCheckboxes input:checked');
+        var articles = [];
+        checks.forEach(function(cb) { articles.push(cb.value); });
+        if (articles.length < 2) { alert('Select at least 2 articles'); return; }
+        var min = parseFloat(document.getElementById('acMin').value) || 10;
+        var max = parseFloat(document.getElementById('acMax').value) || 50;
+        var step = parseFloat(document.getElementById('acStep').value) || 5;
+
+        var prices = [];
+        for (var p = min; p <= max; p += step) prices.push(p);
+
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        var datasets = [];
+        var colors = ['#7c3aed','#d4a849','#0ea5e9','#059669','#e67e22'];
+
+        articles.forEach(function(art, ai) {
+            var entries = all.filter(function(r) { return r.article === art; });
+            if (entries.length === 0) return;
+            var avgEntry = {};
+            var fields = ['roughExpensePct','roughSellPct','roughSellRate','roughFlat','roughFlatRate','extraSell','extraSellRate','roughOut','kadhineSize','kadhinePoPct','kadhineMajuri','regularSize','regularPoPct','regularMajuri'];
+            fields.forEach(function(f) {
+                var vals = entries.map(function(r) { return parseFloat(r[f]) || 0; }).filter(function(v) { return v > 0; });
+                avgEntry[f] = vals.length > 0 ? vals.reduce(function(a,b) { return a+b; },0) / vals.length : 0;
+            });
+            // Use median USD rate
+            var rates = entries.map(function(r) { return parseFloat(r.usdToInr) || 0; }).filter(function(v) { return v > 0; });
+            avgEntry.usdToInr = rates.length > 0 ? rates.sort(function(a,b) { return a-b; })[Math.floor(rates.length/2)] : 96;
+
+            var vals = prices.map(function(price) {
+                var roughAmntInr = Math.round(price * avgEntry.usdToInr);
+                var expense = Math.round((roughAmntInr * (avgEntry.roughExpensePct||0)) / 100);
+                var finalAmnt = roughAmntInr + expense;
+                var sv = Math.round(((avgEntry.roughSellPct||0) * (avgEntry.roughSellRate||0)) / 100);
+                var fv = Math.round(((avgEntry.roughFlat||0) * (avgEntry.roughFlatRate||0)) / 100);
+                var ev = Math.round(((avgEntry.extraSell||0) * (avgEntry.extraSellRate||0)) / 100);
+                var padtar = finalAmnt - (sv + fv + ev);
+                var out = avgEntry.roughOut || 0;
+                return out >= 100 ? 0 : Math.round(padtar / (1 - (out / 100)));
+            });
+            datasets.push({
+                label: art,
+                data: vals,
+                borderColor: colors[ai % colors.length],
+                tension: 0.3,
+                fill: false
+            });
+        });
+
+        if (_acChart) _acChart.destroy();
+        _acChart = new Chart(document.getElementById('acChart').getContext('2d'), {
+            type: 'line',
+            data: { labels: prices.map(function(v) { return '$' + v; }), datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 8 } } } }, scales: { y: { beginAtZero: false } } }
+        });
+    }
+
+    /* ───── TREND ANALYSIS ───── */
+    var _trendChart = null;
+    function runTrendAnalysis() {
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        if (all.length === 0) { alert('No data'); return; }
+        // Group by article + month
+        var map = {};
+        all.forEach(function(r) {
+            if (!r.timestamp) return;
+            var d = new Date(r.timestamp);
+            var ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+            var art = r.article || 'Unknown';
+            var key = art + '|' + ym;
+            if (!map[key]) map[key] = {article:art, ym:ym, mfgSum:0, count:0};
+            map[key].mfgSum += parseFloat(r.mfg) || 0;
+            map[key].count++;
+        });
+        // Average per article-month
+        var byArt = {};
+        for (var k in map) {
+            var d = map[k];
+            if (d.count === 0) continue;
+            var avg = d.mfgSum / d.count;
+            if (!byArt[d.article]) byArt[d.article] = [];
+            byArt[d.article].push({ym:d.ym, avg:Math.round(avg)});
+        }
+        // Sort months, generate prediction
+        var allMonths = Object.keys(map).map(function(k) { return map[k].ym; }).filter(function(v,i,a) { return a.indexOf(v) === i; }).sort();
+        var colors = ['#7c3aed','#d4a849','#0ea5e9','#059669','#e67e22'];
+        var datasets = [];
+        var artIdx = 0;
+        for (var art in byArt) {
+            byArt[art].sort(function(a,b) { return a.ym.localeCompare(b.ym); });
+            var dataMap = {};
+            byArt[art].forEach(function(d) { dataMap[d.ym] = d.avg; });
+            var vals = allMonths.map(function(m) { return dataMap[m] !== undefined ? dataMap[m] : null; });
+            // Simple prediction: average of last 2
+            var realVals = vals.filter(function(v) { return v !== null; });
+            var pred = null;
+            if (realVals.length >= 2) {
+                pred = Math.round((realVals[realVals.length-1] + realVals[realVals.length-2]) / 2);
+            } else if (realVals.length === 1) {
+                pred = realVals[0];
+            }
+            var displayVals = vals.slice();
+            if (pred !== null) displayVals.push(pred);
+            datasets.push({
+                label: art,
+                data: displayVals,
+                borderColor: colors[artIdx % colors.length],
+                borderDash: byArt[art].length < 2 ? [5,5] : [],
+                tension: 0.3,
+                fill: false
+            });
+            artIdx++;
+        }
+        var labels = allMonths.slice();
+        if (datasets.length > 0 && datasets[0].data.length > labels.length) {
+            labels.push('Next Month');
+        }
+
+        if (_trendChart) _trendChart.destroy();
+        _trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+            type: 'line',
+            data: { labels: labels, datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 7 } } } } }
+        });
+
+        // Text summary
+        var html = '';
+        for (var a in byArt) {
+            var d = byArt[a];
+            var last = d[d.length-1];
+            var first = d[0];
+            if (last && first) {
+                var chg = ((last.avg - first.avg) / first.avg * 100).toFixed(1);
+                html += '<div style="margin-bottom:2px;"><b>' + a + '</b>: ' + first.ym + ' ' + first.avg + ' → ' + last.ym + ' ' + last.avg + ' (' + (chg >= 0 ? '📈+' : '📉') + chg + '%)</div>';
+            }
+        }
+        document.getElementById('trendResults').innerHTML = html || '<div style="color:var(--lb-deep);">Insufficient data for trends.</div>';
+    }
+
+    /* ───── PRICE SENSITIVITY ───── */
+    function runPriceSensitivity() {
+        var pctChange = parseFloat(document.getElementById('psChange').value) || -5;
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        if (all.length === 0) { alert('No data'); return; }
+        // Use average params per article
+        var byArt = {};
+        all.forEach(function(r) {
+            var art = r.article || 'Unknown';
+            if (!byArt[art]) byArt[art] = {entries:0, mfgSum:0, roughAmntSum:0, count:0};
+            byArt[art].count++;
+            var mfg = parseFloat(r.mfg) || 0;
+            var amt = parseFloat(r.roughAmntCt) || 0;
+            if (mfg > 0) { byArt[art].mfgSum += mfg; byArt[art].entries++; }
+            if (amt > 0) { byArt[art].roughAmntSum += amt; }
+        });
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:0.65rem;"><thead><tr style="background:var(--lb-mid);"><th>Article</th><th>Base MFG</th><th>New MFG</th><th>Change</th><th>Impact</th></tr></thead><tbody>';
+        var artNames = Object.keys(byArt);
+        artNames.forEach(function(art) {
+            var d = byArt[art];
+            var baseMfg = d.entries > 0 ? d.mfgSum / d.entries : 0;
+            var baseAmt = d.count > 0 ? d.roughAmntSum / d.count : 28;
+            var newAmt = baseAmt * (1 + pctChange / 100);
+            // Rough calc of new MFG
+            var newMfg = baseMfg > 0 && baseAmt > 0 ? Math.round(baseMfg * (newAmt / baseAmt)) : 0;
+            var change = baseMfg > 0 ? ((newMfg - baseMfg) / baseMfg * 100).toFixed(1) : '0';
+            var icon = parseFloat(change) > 0 ? '📈' : parseFloat(change) < 0 ? '📉' : '➡';
+            html += '<tr><td><b>' + art + '</b></td><td>' + Math.round(baseMfg) + '</td><td>' + newMfg + '</td><td>' + change + '%</td><td>' + icon + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('psResults').innerHTML = html;
+    }
+
+    /* ───── CONSISTENCY SCORE ───── */
+    function runConsistencyScore() {
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        if (all.length < 3) { alert('Need at least 3 entries for scoring'); return; }
+        var byArt = {};
+        all.forEach(function(r) {
+            var art = r.article || 'Unknown';
+            if (!byArt[art]) byArt[art] = [];
+            var mfg = parseFloat(r.mfg);
+            if (mfg > 0) byArt[art].push(mfg);
+        });
+        var scores = [];
+        for (var art in byArt) {
+            var vals = byArt[art];
+            if (vals.length < 2) continue;
+            var sum = vals.reduce(function(a,b) { return a+b; }, 0);
+            var mean = sum / vals.length;
+            var variance = vals.reduce(function(a,b) { return a + (b-mean)*(b-mean); }, 0) / vals.length;
+            var stddev = Math.sqrt(variance);
+            var cv = stddev / mean; // lower = more consistent
+            scores.push({article:art, count:vals.length, mean:Math.round(mean), stddev:Math.round(stddev), cv:cv});
+        }
+        scores.sort(function(a,b) { return a.cv - b.cv; });
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:0.65rem;"><thead><tr style="background:var(--lb-mid);"><th>#</th><th>Article</th><th>Entries</th><th>Avg MFG</th><th>StdDev</th><th>Score</th></tr></thead><tbody>';
+        scores.forEach(function(s, i) {
+            var stars = s.cv < 0.1 ? '⭐⭐⭐' : s.cv < 0.2 ? '⭐⭐' : s.cv < 0.3 ? '⭐' : '−';
+            html += '<tr><td>' + (i+1) + '</td><td><b>' + s.article + '</b></td><td>' + s.count + '</td><td>' + s.mean + '</td><td>' + s.stddev + '</td><td>' + stars + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        if (scores.length > 0) {
+            html += '<div style="font-size:0.6rem;color:var(--lb-deep);margin-top:2px;">Lower score = more consistent. ⭐⭐⭐ = very stable, ⭐ = moderate, − = variable.</div>';
+        }
+        document.getElementById('csResults').innerHTML = html || '<div>Not enough data per article.</div>';
+    }
+
+    /* ───── ROI CALCULATOR ───── */
+    function runROICalc() {
+        var roughCt = parseFloat(document.getElementById('roiRoughCt').value) || 0;
+        var polishCt = parseFloat(document.getElementById('roiPolishCt').value) || 0;
+        if (!roughCt || !polishCt) { alert('Enter both rough cost and polish sale price'); return; }
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        if (all.length === 0) { alert('No past entries'); return; }
+        var byArt = {};
+        all.forEach(function(r) {
+            var art = r.article || 'Unknown';
+            if (!byArt[art]) byArt[art] = {mfgSum:0, count:0, roughOutSum:0};
+            var mfg = parseFloat(r.mfg) || 0;
+            var out = parseFloat(r.roughOut) || 0;
+            if (mfg > 0) { byArt[art].mfgSum += mfg; byArt[art].count++; byArt[art].roughOutSum += out; }
+        });
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:0.65rem;"><thead><tr style="background:var(--lb-mid);"><th>Article</th><th>Avg MFG</th><th>Rough Cost</th><th>Polish Est.</th><th>Profit/ct</th><th>ROI</th></tr></thead><tbody>';
+        var artNames = Object.keys(byArt);
+        artNames.forEach(function(art) {
+            var d = byArt[art];
+            if (d.count === 0) return;
+            var avgMfg = Math.round(d.mfgSum / d.count);
+            var avgOut = d.roughOutSum / d.count;
+            var yieldPct = 100 - avgOut;
+            var roughCostPerCtRough = roughCt;
+            var roughCostPerCtPolish = yieldPct > 0 ? roughCt / (yieldPct / 100) : 0;
+            var profit = polishCt - roughCostPerCtPolish;
+            var roi = roughCostPerCtPolish > 0 ? ((profit / roughCostPerCtPolish) * 100).toFixed(1) : '−';
+            var color = profit > 0 ? 'var(--success-clean)' : '#a33';
+            html += '<tr><td><b>' + art + '</b></td><td>' + avgMfg + '</td><td>$' + roughCostPerCtPolish.toFixed(0) + '</td><td>$' + polishCt + '</td><td style="color:' + color + ';font-weight:700;">$' + Math.round(profit) + '</td><td>' + roi + '%</td></tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('roiResults').innerHTML = html;
     }
 </script>
 </body>
