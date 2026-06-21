@@ -894,14 +894,14 @@
             <button class="dash-btn dash-btn-cost" onclick="showView('costsheet')">
                 <span class="icon">◇</span> Cost Sheet
             </button>
+            <button class="dash-btn dash-btn-cost" onclick="showView('compare')" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                <span class="icon">⇄</span> Compare
+            </button>
             <button class="dash-btn dash-btn-data" onclick="showView('olddata')">
                 <span class="icon">☰</span> Old Data
             </button>
             <button class="dash-btn dash-btn-master" onclick="showView('masters')">
                 <span class="icon">⚙</span> Masters
-            </button>
-            <button class="dash-btn dash-btn-cost" onclick="showView('compare')" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
-                <span class="icon">⇄</span> Compare
             </button>
         </div>
     </div>
@@ -924,6 +924,9 @@
             </button>
             <button class="dash-btn dash-btn-data" onclick="showView('datasync')">
                 <span class="icon">☁</span> Data Sync
+            </button>
+            <button class="dash-btn dash-btn-master" onclick="openPinOverlay()" style="background:linear-gradient(135deg,#e67e22,#d35400);">
+                <span class="icon">🔑</span> Admin PIN
             </button>
         </div>
     </div>
@@ -1257,6 +1260,29 @@
 <div id="saveToast">
     <span id="toastMsg">✅ Entry saved!</span>
     <button onclick="toastViewEntry()">👁 View</button>
+</div>
+
+<!-- PIN OVERLAY -->
+<div class="overlay" id="pinOverlay">
+    <div class="overlay-panel" style="max-width:300px;text-align:center;">
+        <h3>🔑 Admin PIN</h3>
+        <div id="pinSetSection">
+            <p style="font-size:0.75rem;color:var(--lb-deep);margin-bottom:10px;">Set or change your 4-digit PIN. Required for edit/delete actions.</p>
+            <input type="password" id="pinInput1" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="Enter 4-digit PIN" style="width:100%;height:40px;font-size:1.2rem;text-align:center;letter-spacing:6px;border:1px solid var(--border-shimmer);border-radius:8px;margin-bottom:6px;">
+            <input type="password" id="pinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" style="width:100%;height:40px;font-size:1.2rem;text-align:center;letter-spacing:6px;border:1px solid var(--border-shimmer);border-radius:8px;margin-bottom:10px;">
+            <button onclick="savePIN()" style="width:100%;height:40px;background:var(--success-clean);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Save PIN</button>
+        </div>
+        <div id="pinChangeSection" style="display:none;">
+            <p style="font-size:0.75rem;color:var(--lb-deep);margin-bottom:10px;">PIN is currently set. Enter current PIN to change or remove.</p>
+            <input type="password" id="pinCurrent" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="Current PIN" style="width:100%;height:40px;font-size:1.2rem;text-align:center;letter-spacing:6px;border:1px solid var(--border-shimmer);border-radius:8px;margin-bottom:10px;">
+            <div style="display:flex;gap:6px;">
+                <button onclick="verifyAndChangePIN()" style="flex:1;height:36px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Change</button>
+                <button onclick="verifyAndRemovePIN()" style="flex:1;height:36px;background:#a33;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Remove</button>
+            </div>
+            <button onclick="cancelPinOverlay()" style="width:100%;height:36px;background:#94a3b8;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:6px;">Cancel</button>
+        </div>
+        <div id="pinStatus" style="margin-top:8px;font-size:0.75rem;font-weight:700;"></div>
+    </div>
 </div>
 
 <!-- FULLSCREEN ENTRY VIEW -->
@@ -1649,6 +1675,10 @@
     }
 
     function editFromView() {
+        requirePIN(function() { doEditFromView(); });
+    }
+
+    function doEditFromView() {
         if (_viewEntryIdx < 0) return;
         var history = getFilteredHistory();
         var item = history[_viewEntryIdx];
@@ -1826,16 +1856,77 @@
         });
     }
 
+    function getStoredPIN() { return localStorage.getItem('adminPIN') || ''; }
+
+    function requirePIN(callback) {
+        var pin = getStoredPIN();
+        if (!pin) { callback(); return; }
+        var input = prompt('🔑 Enter 4-digit PIN:');
+        if (input === null) return;
+        if (input.trim() !== pin) { alert('Incorrect PIN!'); return; }
+        callback();
+    }
+
+    function openPinOverlay() {
+        var pin = getStoredPIN();
+        document.getElementById('pinSetSection').style.display = pin ? 'none' : 'block';
+        document.getElementById('pinChangeSection').style.display = pin ? 'block' : 'none';
+        document.getElementById('pinInput1').value = '';
+        document.getElementById('pinInput2').value = '';
+        document.getElementById('pinCurrent').value = '';
+        document.getElementById('pinStatus').innerText = '';
+        document.getElementById('pinOverlay').classList.add('show');
+    }
+
+    function cancelPinOverlay() {
+        document.getElementById('pinOverlay').classList.remove('show');
+    }
+
+    function savePIN() {
+        var p1 = document.getElementById('pinInput1').value.trim();
+        var p2 = document.getElementById('pinInput2').value.trim();
+        if (!p1 || p1.length !== 4 || isNaN(p1)) { setPinStatus('Enter a valid 4-digit PIN', '#a33'); return; }
+        if (p1 !== p2) { setPinStatus('PINs do not match', '#a33'); return; }
+        localStorage.setItem('adminPIN', p1);
+        setPinStatus('PIN saved!', 'var(--success-clean)');
+        setTimeout(cancelPinOverlay, 1000);
+    }
+
+    function verifyAndChangePIN() {
+        var cur = document.getElementById('pinCurrent').value.trim();
+        if (cur !== getStoredPIN()) { setPinStatus('Current PIN is wrong', '#a33'); return; }
+        document.getElementById('pinChangeSection').style.display = 'none';
+        document.getElementById('pinSetSection').style.display = 'block';
+        document.querySelector('#pinSetSection p').innerText = 'Enter new 4-digit PIN:';
+    }
+
+    function verifyAndRemovePIN() {
+        var cur = document.getElementById('pinCurrent').value.trim();
+        if (cur !== getStoredPIN()) { setPinStatus('Current PIN is wrong', '#a33'); return; }
+        localStorage.removeItem('adminPIN');
+        setPinStatus('PIN removed', 'var(--lb-deep)');
+        setTimeout(cancelPinOverlay, 1000);
+    }
+
+    function setPinStatus(msg, color) {
+        var el = document.getElementById('pinStatus');
+        if (!el) return;
+        el.innerText = msg;
+        el.style.color = color;
+    }
+
     function deleteEntry(idx) {
-        var history = getFilteredHistory();
-        if (idx < 0 || idx >= history.length) return;
-        var item = history[idx];
-        if (!confirm('Delete entry for ' + (item.article||'-') + '?')) return;
-        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
-        all = all.filter(function(h) { return h.id !== item.id; });
-        localStorage.setItem('diamondHistory', JSON.stringify(all));
-        renderLogs();
-        autoSync();
+        requirePIN(function() {
+            var history = getFilteredHistory();
+            if (idx < 0 || idx >= history.length) return;
+            var item = history[idx];
+            if (!confirm('Delete entry for ' + (item.article||'-') + '?')) return;
+            var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+            all = all.filter(function(h) { return h.id !== item.id; });
+            localStorage.setItem('diamondHistory', JSON.stringify(all));
+            renderLogs();
+            autoSync();
+        });
     }
 
     var _editIdx = -1;
