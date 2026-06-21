@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Diamond Cost Master</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
@@ -879,6 +880,14 @@
         }
         .ve-top-bar .back { font-size: 1.2rem; cursor: pointer; background: none; border: none; color: var(--lb-deep); padding: 4px 8px; }
         .ve-top-bar .title { flex: 1; text-align: center; font-size: 1rem; font-weight: 800; color: var(--lb-deep); }
+        /* AI Analysis charts */
+        #aiSummary { font-size:0.78rem; line-height:1.6; }
+        #aiSummary strong { font-weight:700; }
+        #aiTableWrap table { border-collapse:collapse; }
+        #aiTableWrap th, #aiTableWrap td { border:1px solid var(--border-shimmer); padding:4px 6px; text-align:center; }
+        #aiTableWrap th { background:var(--lb-mid); font-weight:700; }
+        /* Install btn visibility */
+        #installBtn { display:none; }
     </style>
 </head>
 <body>
@@ -890,6 +899,12 @@
             <h1>Rough to Polish</h1>
             <p>Calc</p>
         </div>
+        <!-- Search bar -->
+        <div style="position:relative;margin-bottom:12px;">
+            <input type="text" id="dashSearch" placeholder="Search entries..." onkeyup="if(event.key==='Enter') dashSearchGo()" style="width:100%;height:38px;padding:0 12px 0 36px;border:1px solid var(--border-shimmer);border-radius:20px;font-size:0.85rem;background:var(--bg-crystal);color:var(--lb-deep);">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:0.9rem;opacity:0.5;pointer-events:none;">🔍</span>
+        </div>
+        <div id="dashSearchResults" style="display:none;background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:8px;margin-bottom:10px;max-height:220px;overflow-y:auto;"></div>
         <div class="dash-menu">
             <button class="dash-btn dash-btn-cost" onclick="showView('costsheet')">
                 <span class="icon">◇</span> Cost Sheet
@@ -900,8 +915,14 @@
             <button class="dash-btn dash-btn-data" onclick="showView('olddata')">
                 <span class="icon">☰</span> Old Data
             </button>
+            <button class="dash-btn dash-btn-master" onclick="showView('aianalysis')" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);">
+                <span class="icon">📊</span> AI Analysis
+            </button>
             <button class="dash-btn dash-btn-master" onclick="showView('masters')">
                 <span class="icon">⚙</span> Masters
+            </button>
+            <button id="installBtn" class="dash-btn dash-btn-master" style="background:linear-gradient(135deg,#059669,#10b981);display:none;" onclick="promptInstall()">
+                <span class="icon">📲</span> Install App
             </button>
         </div>
     </div>
@@ -963,6 +984,33 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- AI ANALYSIS VIEW -->
+<div class="view" id="view-aianalysis">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <span class="title">📊 AI Analysis</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container">
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <input type="month" id="aiMonth" style="flex:1;min-width:90px;height:34px;border:1px solid var(--border-shimmer);border-radius:6px;padding:0 8px;font-size:0.75rem;">
+            <input type="text" id="aiArticle" placeholder="Article filter" style="flex:1;min-width:80px;height:34px;border:1px solid var(--border-shimmer);border-radius:6px;padding:0 8px;font-size:0.75rem;">
+            <button onclick="runAIAnalysis()" style="height:34px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;border:none;border-radius:6px;font-weight:bold;padding:0 14px;cursor:pointer;font-size:0.75rem;">Analyze</button>
+        </div>
+        <div id="aiSummary" style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-bottom:10px;font-size:0.78rem;line-height:1.6;display:none;"></div>
+        <div style="position:relative;height:180px;margin-bottom:10px;">
+            <canvas id="aiChart1"></canvas>
+        </div>
+        <div style="position:relative;height:180px;margin-bottom:10px;">
+            <canvas id="aiChart2"></canvas>
+        </div>
+        <div style="position:relative;height:180px;margin-bottom:10px;">
+            <canvas id="aiChart3"></canvas>
+        </div>
+        <div id="aiTableWrap" style="overflow-x:auto;display:none;margin-top:6px;"></div>
     </div>
 </div>
 
@@ -1425,10 +1473,18 @@
     function showView(name) {
         document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
         document.getElementById('view-' + name).classList.add('active');
+        // Destroy AI charts when leaving AI analysis
+        if (_aiChart1 || _aiChart2 || _aiChart3) { destroyAICharts(); }
         if (name === 'costsheet') { loadArticleDropdown(); calculate(); }
         if (name === 'olddata') { renderLogs(); }
         if (name === 'whatsappmaster') { renderWAFields(); renderWAPreview(); }
         if (name === 'compare') { renderCompare('a'); renderCompare('b'); compareCalc('a'); compareCalc('b'); }
+        if (name === 'aianalysis') {
+            var now = new Date();
+            var ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+            document.getElementById('aiMonth').value = ym;
+            runAIAnalysis();
+        }
     }
 
     function getArticles() {
@@ -2541,7 +2597,288 @@
         renderLogs();
         var inputs = document.querySelectorAll('#view-costsheet input, #view-costsheet select');
         inputs.forEach(function(inp) { inp.addEventListener('input', calculate); });
+        // PWA setup
+        setupPWA();
+        // Register search
+        document.getElementById('dashSearch').addEventListener('input', dashSearchLive);
     };
+
+    /* ───── PWA ───── */
+    var _deferredPrompt = null;
+    function setupPWA() {
+        // Inject manifest
+        var manifest = {
+            name: 'R2P Calc',
+            short_name: 'R2P Calc',
+            start_url: '.',
+            display: 'standalone',
+            background_color: '#f4f6f8',
+            theme_color: '#1b3a5c',
+            icons: [{
+                src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#1b3a5c"/><text x="24" y="32" text-anchor="middle" font-size="28" fill="white" font-family="sans-serif">💎</text></svg>'),
+                sizes: '48x48',
+                type: 'image/svg+xml'
+            }]
+        };
+        var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = url;
+        document.head.appendChild(link);
+
+        // Service worker
+        try {
+            var swCode = 'self.addEventListener("fetch",function(e){e.respondWith(fetch(e.request).catch(function(){return new Response("",{status:408})}));});';
+            var swBlob = new Blob([swCode], {type:'application/javascript'});
+            var swUrl = URL.createObjectURL(swBlob);
+            navigator.serviceWorker.register(swUrl, {scope: '/'});
+        } catch(e) {}
+
+        // Listen for install prompt
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            _deferredPrompt = e;
+            var btn = document.getElementById('installBtn');
+            if (btn) btn.style.display = '';
+        });
+        window.addEventListener('appinstalled', function() {
+            _deferredPrompt = null;
+            var btn = document.getElementById('installBtn');
+            if (btn) btn.style.display = 'none';
+        });
+        // Also show install btn on iOS (manual instructions)
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (isIOS && !navigator.standalone) {
+            var btn = document.getElementById('installBtn');
+            if (btn) { btn.style.display = ''; btn.innerHTML = '<span class="icon">📲</span> Install (iOS: Share → Add to Home Screen)'; }
+        }
+    }
+
+    function promptInstall() {
+        if (_deferredPrompt) {
+            _deferredPrompt.prompt();
+            _deferredPrompt.userChoice.then(function() {
+                _deferredPrompt = null;
+                document.getElementById('installBtn').style.display = 'none';
+            });
+        }
+    }
+
+    /* ───── DASHBOARD SEARCH ───── */
+    function dashSearchLive() {
+        var q = document.getElementById('dashSearch').value.trim().toLowerCase();
+        if (!q) { document.getElementById('dashSearchResults').style.display = 'none'; return; }
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        var matches = [];
+        all.forEach(function(r) {
+            if ((r.article||'').toLowerCase().indexOf(q) >= 0 ||
+                (r.remarks||'').toLowerCase().indexOf(q) >= 0 ||
+                (r.mfg||'').indexOf(q) >= 0 ||
+                (r.kadhine||'').indexOf(q) >= 0) {
+                matches.push(r);
+            }
+        });
+        matches.sort(function(a,b){ return (b.timestamp||'') > (a.timestamp||'') ? 1 : -1; });
+        var div = document.getElementById('dashSearchResults');
+        if (matches.length === 0) {
+            div.style.display = 'block';
+            div.innerHTML = '<div style="padding:6px;text-align:center;color:var(--lb-deep);font-size:0.75rem;">No matches</div>';
+            return;
+        }
+        var h = '';
+        matches.slice(0, 10).forEach(function(r) {
+            var ts = r.ts_display || r.timestamp || '';
+            h += '<div onclick="searchViewEntry(\'' + r.id + '\')" style="padding:5px 6px;border-bottom:1px solid var(--lb-mid);cursor:pointer;display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-weight:700;font-size:0.75rem;">' + (r.article||'-') + '</span>' +
+                '<span style="font-size:0.65rem;color:var(--lb-deep);">' + ts + '</span></div>';
+        });
+        if (matches.length > 10) h += '<div style="padding:4px;text-align:center;font-size:0.7rem;color:var(--lb-deep);">+' + (matches.length-10) + ' more</div>';
+        div.innerHTML = h;
+        div.style.display = 'block';
+    }
+
+    function dashSearchGo() {
+        var results = document.getElementById('dashSearchResults');
+        if (results.style.display === 'block' && results.children.length > 0) {
+            var first = results.querySelector('[onclick]');
+            if (first) first.click();
+        } else {
+            // Navigate to old data with filter
+            showView('olddata');
+        }
+    }
+
+    function searchViewEntry(id) {
+        closeViewEntry();
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].id === id) { _viewEntryIdx = i; break; }
+        }
+        showViewEntry();
+    }
+
+    /* ───── AI ANALYSIS ───── */
+    var _aiChart1 = null, _aiChart2 = null, _aiChart3 = null;
+
+    function runAIAnalysis() {
+        var month = document.getElementById('aiMonth').value;
+        var article = document.getElementById('aiArticle').value.trim().toLowerCase();
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        // Filter
+        var data = all.filter(function(r) {
+            if (!r.timestamp) return false;
+            if (month) {
+                var d = new Date(r.timestamp);
+                var ym = (d.getFullYear()) + '-' + String(d.getMonth()+1).padStart(2,'0');
+                if (ym !== month) return false;
+            }
+            if (article && (r.article||'').toLowerCase().indexOf(article) < 0) return false;
+            return true;
+        });
+        data.sort(function(a,b){ return (a.timestamp||'').localeCompare(b.timestamp||''); });
+
+        if (data.length === 0) {
+            document.getElementById('aiSummary').style.display = 'block';
+            document.getElementById('aiSummary').innerHTML = '<span style="color:var(--lb-deep);">No data found for selected filters.</span>';
+            document.getElementById('aiTableWrap').style.display = 'none';
+            destroyAICharts();
+            return;
+        }
+
+        // Compute stats
+        var byArticle = {};
+        var mfgVals = [], padtarVals = [];
+        var monthsMap = {};
+        data.forEach(function(r) {
+            var art = r.article || 'Unknown';
+            if (!byArticle[art]) byArticle[art] = {count:0, mfgSum:0, kadhineSum:0, regularSum:0, mfgVals:[], kadhineVals:[], regularVals:[]};
+            byArticle[art].count++;
+            var mfg = parseFloat(r.mfg) || 0;
+            var kad = parseFloat(r.kadhine) || 0;
+            var reg = parseFloat(r.regular) || 0;
+            byArticle[art].mfgSum += mfg;
+            byArticle[art].kadhineSum += kad;
+            byArticle[art].regularSum += reg;
+            if (mfg > 0) byArticle[art].mfgVals.push(mfg);
+            if (kad > 0) byArticle[art].kadhineVals.push(kad);
+            if (reg > 0) byArticle[art].regularVals.push(reg);
+            mfgVals.push(mfg);
+            padtarVals.push(kad);
+
+            // Monthly trend
+            if (r.timestamp) {
+                var d = new Date(r.timestamp);
+                var ym = (d.getFullYear()) + '-' + String(d.getMonth()+1).padStart(2,'0');
+                if (!monthsMap[ym]) monthsMap[ym] = {mfgSum:0, kadSum:0, count:0};
+                monthsMap[ym].mfgSum += mfg;
+                monthsMap[ym].kadSum += kad;
+                if (mfg > 0 || kad > 0) monthsMap[ym].count++;
+            }
+        });
+
+        // Generate AI text analysis
+        var aiText = '<strong style="font-size:0.85rem;">📊 Analysis Report</strong><br>';
+        aiText += 'Based on <strong>' + data.length + '</strong> entries';
+        if (month) {
+            var parts = month.split('-');
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            aiText += ' in <strong>' + months[parseInt(parts[1])-1] + ' ' + parts[0] + '</strong>';
+        }
+        aiText += '.<br>';
+
+        var articles = Object.keys(byArticle);
+        aiText += 'Articles found: <strong>' + articles.length + '</strong> (' + articles.join(', ') + ').<br>';
+
+        var avgMfg = mfgVals.length > 0 ? (mfgVals.reduce(function(a,b){return a+b;},0) / mfgVals.length) : 0;
+        var avgKad = padtarVals.length > 0 ? (padtarVals.reduce(function(a,b){return a+b;},0) / padtarVals.length) : 0;
+        aiText += 'Average MFG Rough: <strong style="color:var(--gold);">' + avgMfg.toFixed(2) + '</strong> | Average +2 Padtar: <strong style="color:var(--gold);">' + avgKad.toFixed(2) + '</strong><br>';
+
+        // Highest MFG
+        var maxMfg = Math.max.apply(null, mfgVals.filter(function(v){return v>0;}));
+        var minMfg = Math.min.apply(null, mfgVals.filter(function(v){return v>0;}));
+        if (isFinite(maxMfg)) aiText += 'MFG Rough range: <strong>' + minMfg.toFixed(2) + '</strong> – <strong>' + maxMfg.toFixed(2) + '</strong><br>';
+
+        // Article with most entries
+        var topArt = '', topCount = 0;
+        articles.forEach(function(a) { if (byArticle[a].count > topCount) { topCount = byArticle[a].count; topArt = a; } });
+        aiText += 'Most frequent article: <strong>' + topArt + '</strong> (' + topCount + ' entries).<br>';
+
+        // Month-over-month comparison
+        var monthKeys = Object.keys(monthsMap).sort();
+        if (monthKeys.length > 1) {
+            var last = monthsMap[monthKeys[monthKeys.length-1]];
+            var prev = monthsMap[monthKeys[monthKeys.length-2]];
+            var lastAvg = last.count > 0 ? last.mfgSum / last.count : 0;
+            var prevAvg = prev.count > 0 ? prev.mfgSum / prev.count : 0;
+            if (prevAvg > 0) {
+                var change = ((lastAvg - prevAvg) / prevAvg * 100);
+                aiText += 'MFG trend from ' + monthKeys[monthKeys.length-2] + ' to ' + monthKeys[monthKeys.length-1] + ': <strong>' +
+                    (change >= 0 ? '📈 +' : '📉 ') + change.toFixed(1) + '%</strong><br>';
+            }
+        }
+
+        var summaryEl = document.getElementById('aiSummary');
+        summaryEl.innerHTML = aiText;
+        summaryEl.style.display = 'block';
+
+        // Build charts
+        destroyAICharts();
+        var ctx1 = document.getElementById('aiChart1').getContext('2d');
+        var ctx2 = document.getElementById('aiChart2').getContext('2d');
+        var ctx3 = document.getElementById('aiChart3').getContext('2d');
+
+        // Chart 1: Avg MFG by article (bar)
+        var labels1 = [], vals1 = [];
+        articles.forEach(function(a) {
+            labels1.push(a);
+            var avg = byArticle[a].mfgVals.length > 0 ? byArticle[a].mfgVals.reduce(function(x,y){return x+y;},0) / byArticle[a].mfgVals.length : 0;
+            vals1.push(avg);
+        });
+        _aiChart1 = new Chart(ctx1, {
+            type: 'bar',
+            data: { labels: labels1, datasets: [{ label: 'Avg MFG Rough', data: vals1, backgroundColor: '#d4a849' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // Chart 2: Monthly MFG trend (line)
+        var labels2 = monthKeys, vals2 = [];
+        monthKeys.forEach(function(m) { vals2.push(monthsMap[m].count > 0 ? monthsMap[m].mfgSum / monthsMap[m].count : 0); });
+        _aiChart2 = new Chart(ctx2, {
+            type: 'line',
+            data: { labels: labels2, datasets: [{ label: 'Avg MFG', data: vals2, borderColor: '#1b3a5c', tension: 0.3 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // Chart 3: Entry distribution (pie)
+        var labels3 = [], vals3 = [];
+        articles.slice(0, 8).forEach(function(a) { labels3.push(a); vals3.push(byArticle[a].count); });
+        var colors = ['#1b3a5c','#d4a849','#2d6a4f','#e67e22','#7c3aed','#0ea5e9','#a33','#059669'];
+        _aiChart3 = new Chart(ctx3, {
+            type: 'pie',
+            data: { labels: labels3, datasets: [{ data: vals3, backgroundColor: colors.slice(0, labels3.length) }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 } } } } }
+        });
+
+        // Table
+        var tableHtml = '<table style="width:100%;font-size:0.7rem;"><thead><tr style="background:var(--lb-mid);"><th>Article</th><th>Entries</th><th>Avg MFG</th><th>Avg +2 Padtar</th><th>Avg Regular</th></tr></thead><tbody>';
+        articles.forEach(function(a) {
+            var d = byArticle[a];
+            var am = d.mfgVals.length > 0 ? (d.mfgVals.reduce(function(x,y){return x+y;},0)/d.mfgVals.length).toFixed(2) : '-';
+            var ak = d.kadhineVals.length > 0 ? (d.kadhineVals.reduce(function(x,y){return x+y;},0)/d.kadhineVals.length).toFixed(2) : '-';
+            var ar = d.regularVals.length > 0 ? (d.regularVals.reduce(function(x,y){return x+y;},0)/d.regularVals.length).toFixed(2) : '-';
+            tableHtml += '<tr><td>' + a + '</td><td>' + d.count + '</td><td>' + am + '</td><td>' + ak + '</td><td>' + ar + '</td></tr>';
+        });
+        tableHtml += '</tbody></table>';
+        var tw = document.getElementById('aiTableWrap');
+        tw.innerHTML = tableHtml;
+        tw.style.display = 'block';
+    }
+
+    function destroyAICharts() {
+        [_aiChart1, _aiChart2, _aiChart3].forEach(function(c) { if (c) { c.destroy(); } });
+        _aiChart1 = _aiChart2 = _aiChart3 = null;
+    }
 </script>
 </body>
 </html>
