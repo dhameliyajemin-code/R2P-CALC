@@ -967,7 +967,7 @@
             <button class="dash-btn dash-btn-master" onclick="showView('aianalysis')" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);">
                 <span class="icon">📊</span> AI Analysis
             </button>
-            <button class="dash-btn dash-btn-master" onclick="showView('masters')">
+            <button class="dash-btn dash-btn-master" onclick="showView('admin')">
                 <span class="icon">⚙</span> Masters
             </button>
             <button id="installBtn" class="dash-btn dash-btn-master" style="background:linear-gradient(135deg,#059669,#10b981);display:none;" onclick="promptInstall()">
@@ -980,7 +980,7 @@
 <!-- MASTERS VIEW -->
 <div class="view" id="view-masters">
     <div class="top-bar">
-        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <button class="back-btn" onclick="showView('admin')">←</button>
         <span class="title">Masters</span>
         <span class="spacer"></span>
     </div>
@@ -1119,13 +1119,24 @@
             <p style="font-size:0.7rem;color:var(--lb-deep);margin-bottom:8px;">Start a fresh cost sheet with current defaults.</p>
             <button onclick="newCostSheet()" style="width:100%;height:40px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.85rem;">+ Add New Cost</button>
         </div>
+
+        <!-- Masters Section -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
+            <h3 style="font-size:0.85rem;margin-bottom:6px;">▤ Masters</h3>
+            <p style="font-size:0.7rem;color:var(--lb-deep);margin-bottom:8px;">Article master, WhatsApp templates, data sync.</p>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <button onclick="openArticleMaster()" style="width:100%;height:36px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>▤</span> Rough Article Master</button>
+                <button onclick="showView('whatsappmaster')" style="width:100%;height:36px;background:#1da851;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>💬</span> WhatsApp Text Master</button>
+                <button onclick="showView('datasync')" style="width:100%;height:36px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>☁</span> Data Sync</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- DATA SYNC VIEW -->
 <div class="view" id="view-datasync">
     <div class="top-bar">
-        <button class="back-btn" onclick="showView('masters')">←</button>
+        <button class="back-btn" onclick="showView('admin')">←</button>
         <span class="title">Data Sync</span>
         <span class="spacer"></span>
     </div>
@@ -1151,7 +1162,7 @@
 <!-- WHATSAPP TEXT MASTER VIEW -->
 <div class="view" id="view-whatsappmaster">
     <div class="top-bar">
-        <button class="back-btn" onclick="showView('masters')">←</button>
+        <button class="back-btn" onclick="showView('admin')">←</button>
         <span class="title">WhatsApp Text Master</span>
         <span class="spacer"></span>
     </div>
