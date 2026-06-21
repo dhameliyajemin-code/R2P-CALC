@@ -849,6 +849,36 @@
         }
         .compare-side h3 { font-size: 0.65rem !important; padding-bottom: 2px !important; margin-bottom: 3px !important; }
         .compare-side button { font-size: 0.6rem !important; height: 24px !important; }
+
+        /* Toast notification */
+        #saveToast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--success-clean); color: #fff; padding: 10px 18px;
+            border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2); z-index: 2000;
+            display: none; align-items: center; gap: 10px;
+            max-width: 90%;
+        }
+        #saveToast button {
+            background: #fff; color: var(--success-clean); border: none;
+            padding: 4px 12px; border-radius: 6px; font-weight: 800;
+            font-size: 0.75rem; cursor: pointer;
+        }
+
+        /* Fullscreen entry view overlay */
+        #viewEntryOverlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-crystal); z-index: 1500; overflow-y: auto;
+            display: none; padding: 14px;
+        }
+        #viewEntryOverlay.show { display: block; }
+        .ve-top-bar {
+            display: flex; align-items: center; margin-bottom: 8px;
+            position: sticky; top: 0; background: var(--bg-crystal); z-index: 1;
+            padding-bottom: 6px; border-bottom: 2px solid var(--lb-mid);
+        }
+        .ve-top-bar .back { font-size: 1.2rem; cursor: pointer; background: none; border: none; color: var(--lb-deep); padding: 4px 8px; }
+        .ve-top-bar .title { flex: 1; text-align: center; font-size: 1rem; font-weight: 800; color: var(--lb-deep); }
     </style>
 </head>
 <body>
@@ -1223,6 +1253,26 @@
     </div>
 </div>
 
+<!-- SAVE TOAST -->
+<div id="saveToast">
+    <span id="toastMsg">✅ Entry saved!</span>
+    <button onclick="toastViewEntry()">👁 View</button>
+</div>
+
+<!-- FULLSCREEN ENTRY VIEW -->
+<div id="viewEntryOverlay">
+    <div class="ve-top-bar">
+        <button class="back" onclick="closeViewEntry()">←</button>
+        <span class="title" id="veTitle">Entry</span>
+        <button class="back" onclick="editFromView()" style="font-size:0.75rem;font-weight:800;color:var(--success-clean);">✎ Edit</button>
+    </div>
+    <div id="veContent" style="font-size:0.82rem;"></div>
+    <div style="display:flex;gap:6px;margin-top:12px;position:sticky;bottom:0;background:var(--bg-crystal);padding:8px 0;">
+        <button class="action-btn" onclick="closeViewEntry()" style="flex:1;height:36px;font-size:0.75rem;background:var(--lb-deep);color:#fff;">Close</button>
+        <button class="action-btn" onclick="editFromView()" style="flex:1;height:36px;font-size:0.75rem;background:var(--success-clean);color:#fff;">✎ Edit</button>
+    </div>
+</div>
+
 <script>
     var DEFAULT_ARTICLES = ["Roza 75", "DTC", "Hawa 7565", "Noorba", "3 2 Extra", "Hawa 7x5"];
     var firebaseApp = null, firebaseDb = null, firebaseListener = null;
@@ -1520,9 +1570,13 @@
             extraSell: document.getElementById('extraSell').value,
             extraSellRate: document.getElementById('extraSellRate').value,
             roughOut: document.getElementById('roughOut').value,
+            kadhinePiece: document.getElementById('kadhinePiece').value,
+            kadhineCt: document.getElementById('kadhineCt').value,
             kadhineSize: document.getElementById('kadhineSize').value,
             kadhinePoPct: document.getElementById('kadhinePoPct').value,
             kadhineMajuri: document.getElementById('kadhineMajuri').value,
+            regularPiece: document.getElementById('regularPiece').value,
+            regularCt: document.getElementById('regularCt').value,
             regularSize: document.getElementById('regularSize').value,
             regularPoPct: document.getElementById('regularPoPct').value,
             regularMajuri: document.getElementById('regularMajuri').value,
@@ -1542,6 +1596,148 @@
         localStorage.setItem('diamondHistory', JSON.stringify(history));
         renderLogs();
         autoSync();
+        // Clear cost sheet
+        document.getElementById('roughAmntCt').value = '28';
+        document.getElementById('usdToInr').value = '96';
+        document.getElementById('roughExpensePct').value = '2';
+        document.getElementById('roughSellPct').value = '5';
+        document.getElementById('roughSellRate').value = '8000';
+        document.getElementById('roughFlat').value = '0';
+        document.getElementById('roughFlatRate').value = '0';
+        document.getElementById('extraSell').value = '0';
+        document.getElementById('extraSellRate').value = '0';
+        document.getElementById('roughOut').value = '20';
+        document.getElementById('kadhinePiece').value = '5000';
+        document.getElementById('kadhineCt').value = '100';
+        document.getElementById('kadhineSize').value = '50';
+        document.getElementById('kadhinePoPct').value = '25';
+        document.getElementById('kadhineMajuri').value = '65';
+        document.getElementById('regularPiece').value = '5000';
+        document.getElementById('regularCt').value = '100';
+        document.getElementById('regularSize').value = '50';
+        document.getElementById('regularPoPct').value = '25';
+        document.getElementById('regularMajuri').value = '65';
+        document.getElementById('remarks').value = '';
+        calculate();
+        // Show toast
+        var toast = document.getElementById('saveToast');
+        document.getElementById('toastMsg').innerText = '✅ Entry saved!';
+        toast.style.display = 'flex';
+        setTimeout(function() { toast.style.display = 'none'; }, 4000);
+    }
+
+    var _viewEntryIdx = -1;
+    function toastViewEntry() {
+        document.getElementById('saveToast').style.display = 'none';
+        showView('olddata');
+    }
+
+    function openViewEntry(idx) {
+        var history = getFilteredHistory();
+        if (idx < 0 || idx >= history.length) return;
+        _viewEntryIdx = idx;
+        var item = history[idx];
+        document.getElementById('veTitle').innerText = (item.article||'-') + ' - ' + (item.ts_display||'');
+        var html = buildEntryHTML(item);
+        document.getElementById('veContent').innerHTML = html;
+        document.getElementById('viewEntryOverlay').classList.add('show');
+    }
+
+    function closeViewEntry() {
+        document.getElementById('viewEntryOverlay').classList.remove('show');
+        _viewEntryIdx = -1;
+    }
+
+    function editFromView() {
+        if (_viewEntryIdx < 0) return;
+        var history = getFilteredHistory();
+        var item = history[_viewEntryIdx];
+        // Load into cost sheet
+        if (item.roughAmntCt) document.getElementById('roughAmntCt').value = item.roughAmntCt;
+        if (item.usdToInr) document.getElementById('usdToInr').value = item.usdToInr;
+        if (item.roughExpensePct) document.getElementById('roughExpensePct').value = item.roughExpensePct;
+        if (item.roughSellPct) document.getElementById('roughSellPct').value = item.roughSellPct;
+        if (item.roughSellRate) document.getElementById('roughSellRate').value = item.roughSellRate;
+        if (item.roughFlat) document.getElementById('roughFlat').value = item.roughFlat;
+        if (item.roughFlatRate) document.getElementById('roughFlatRate').value = item.roughFlatRate;
+        if (item.extraSell) document.getElementById('extraSell').value = item.extraSell;
+        if (item.extraSellRate) document.getElementById('extraSellRate').value = item.extraSellRate;
+        if (item.roughOut) document.getElementById('roughOut').value = item.roughOut;
+        if (item.kadhineSize) document.getElementById('kadhineSize').value = item.kadhineSize;
+        if (item.kadhinePoPct) document.getElementById('kadhinePoPct').value = item.kadhinePoPct;
+        if (item.kadhineMajuri) document.getElementById('kadhineMajuri').value = item.kadhineMajuri;
+        if (item.regularSize) document.getElementById('regularSize').value = item.regularSize;
+        if (item.regularPoPct) document.getElementById('regularPoPct').value = item.regularPoPct;
+        if (item.regularMajuri) document.getElementById('regularMajuri').value = item.regularMajuri;
+        if (item.article) {
+            var sel = document.getElementById('articleName');
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === item.article) { sel.selectedIndex = i; break; }
+            }
+        }
+        if (item.remarks && item.remarks !== '-') document.getElementById('remarks').value = item.remarks;
+        calculate();
+        closeViewEntry();
+        showView('costsheet');
+        // Show edit dialog
+        var ec = document.getElementById('editContent');
+        if (!ec) return;
+        ec.innerHTML =
+            '<div class="edit-dialog-row"><span class="edit-label">Article</span><span class="edit-val">' + (item.article||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">MFG Rough</span><span class="edit-val">' + (item.mfg||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">+2 Padtar</span><span class="edit-val">' + (item.kadhine||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">Regular Padtar</span><span class="edit-val">' + (item.regular||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">Remarks</span><span class="edit-val">' + (item.remarks||'-') + '</span></div>' +
+            '<p style="font-size:0.75rem;color:var(--lb-deep);margin-top:8px;">Save changes as new entry or replace this one?</p>';
+        document.getElementById('btnEditReplace').onclick = function() {
+            replaceEntry();
+            closeViewEntry();
+        };
+        document.getElementById('btnEditCopy').onclick = function() {
+            copyEntry();
+            closeViewEntry();
+        };
+        document.getElementById('editOverlay').classList.add('show');
+    }
+
+    function buildEntryHTML(item) {
+        var h = '<div style="background:var(--bg-crystal);padding:2px;">';
+        h += '<h2 style="font-size:1rem;margin-bottom:8px;">' + (item.article||'-') + '</h2>';
+        // Inputs section
+        h += '<div class="section-title">Inputs</div>';
+        h += '<div class="sheet-row"><span class="label">$ / CT</span><span style="text-align:right;font-weight:700;">' + (item.roughAmntCt||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">USD/INR</span><span style="text-align:right;font-weight:700;">' + (item.usdToInr||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Exp %</span><span style="text-align:right;font-weight:700;">' + (item.roughExpensePct||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Sell %</span><span style="text-align:right;font-weight:700;">' + (item.roughSellPct||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Sell Rate</span><span style="text-align:right;font-weight:700;">' + (item.roughSellRate||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Flat</span><span style="text-align:right;font-weight:700;">' + (item.roughFlat||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Flat Rate</span><span style="text-align:right;font-weight:700;">' + (item.roughFlatRate||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Extra</span><span style="text-align:right;font-weight:700;">' + (item.extraSell||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Extra Rate</span><span style="text-align:right;font-weight:700;">' + (item.extraSellRate||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Out %</span><span style="text-align:right;font-weight:700;">' + (item.roughOut||'-') + '</span></div>';
+        // Results
+        h += '<div class="section-title">Results</div>';
+        var roughInr = Math.round((parseFloat(item.roughAmntCt)||0) * (parseFloat(item.usdToInr)||0));
+        h += '<div class="sheet-row"><span class="label">Rgh Inr</span><span style="text-align:right;font-weight:700;">' + roughInr + '</span></div>';
+        h += '<div class="sheet-row" style="background:#fcf8f0;"><span class="label" style="font-weight:800;">MFG</span><span class="gold-val" style="text-align:right;">' + (item.mfg||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">+2 Pad</span><span class="gold-val" style="text-align:right;">' + (item.kadhine||'-') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Reg Pad</span><span class="gold-val" style="text-align:right;">' + (item.regular||'-') + '</span></div>';
+        // Batch params
+        h += '<div class="section-title">+2 Kadhine</div>';
+        h += '<div class="sheet-row"><span class="label">Pcs</span><span style="text-align:right;font-weight:700;">' + (item.kadhinePiece||'5000') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">RCt</span><span style="text-align:right;font-weight:700;">' + (item.kadhineCt||'100') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">RSz</span><span style="text-align:right;font-weight:700;">' + (item.kadhineSize||'50') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">PO%</span><span style="text-align:right;font-weight:700;">' + (item.kadhinePoPct||'25') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Maj</span><span style="text-align:right;font-weight:700;">' + (item.kadhineMajuri||'65') + '</span></div>';
+        h += '<div class="section-title">Regular</div>';
+        h += '<div class="sheet-row"><span class="label">Pcs</span><span style="text-align:right;font-weight:700;">' + (item.regularPiece||'5000') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">RCt</span><span style="text-align:right;font-weight:700;">' + (item.regularCt||'100') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">RSz</span><span style="text-align:right;font-weight:700;">' + (item.regularSize||'50') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">PO%</span><span style="text-align:right;font-weight:700;">' + (item.regularPoPct||'25') + '</span></div>';
+        h += '<div class="sheet-row"><span class="label">Maj</span><span style="text-align:right;font-weight:700;">' + (item.regularMajuri||'65') + '</span></div>';
+        if (item.remarks) h += '<div class="section-title">Remarks</div><div style="padding:4px 0;font-size:0.82rem;">' + item.remarks + '</div>';
+        h += '</div>';
+        return h;
     }
 
     function populateFilters() {
@@ -1622,7 +1818,8 @@
                 '<td style="background:var(--lb-light);font-weight:bold;">' + (item.kadhine||'-') + '</td>' +
                 '<td style="background:var(--lb-light);font-weight:bold;">' + (item.regular||'-') + '</td>' +
                 '<td style="white-space:nowrap;font-size:0;">' +
-                    '<button class="log-action-btn" onclick="openDetail(' + idx + ')" title="Download Image">🖼</button>' +
+                    '<button class="log-action-btn" onclick="openViewEntry(' + idx + ')" title="View Full" style="font-weight:800;">👁</button>' +
+                    '<button class="log-action-btn" onclick="openDetail(' + idx + ')" title="Download Image" style="margin-left:2px;">🖼</button>' +
                     '<button class="log-action-btn" onclick="shareLogEntry(' + idx + ')" title="WhatsApp Share" style="margin-left:2px;">💬</button>' +
                     '<button class="log-action-btn" onclick="deleteEntry(' + idx + ')" title="Clear" style="margin-left:2px;">✕</button>' +
                 '</td></tr>';
