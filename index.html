@@ -1101,8 +1101,8 @@
                 <table class="batch-table">
                     <thead><tr><th>Pcs</th><th>RCt</th><th>RATE</th><th>RSz</th><th>PO%</th><th>Maj</th><th>PADTAR</th></tr></thead>
                     <tbody><tr>
-                        <td><input type="number" id="kadhinePiece" value="5000" step="1"></td>
-                        <td><input type="number" id="kadhineCt" value="100" step="0.01"></td>
+                        <td><input type="number" id="kadhinePiece" value="5000" step="1" oninput="autoCalcRSz('kadhine')"></td>
+                        <td><input type="number" id="kadhineCt" value="100" step="0.01" oninput="autoCalcRSz('kadhine')"></td>
                         <td><span class="calc-val" id="kadhineRate">0</span></td>
                         <td><input type="number" id="kadhineSize" value="50" step="0.1"></td>
                         <td><input type="number" id="kadhinePoPct" value="25" step="0.1"></td>
@@ -1119,8 +1119,8 @@
                 <table class="batch-table">
                     <thead><tr><th>Pcs</th><th>RCt</th><th>RATE</th><th>RSz</th><th>PO%</th><th>Maj</th><th>PADTAR</th></tr></thead>
                     <tbody><tr>
-                        <td><input type="number" id="regularPiece" value="5000" step="1"></td>
-                        <td><input type="number" id="regularCt" value="100" step="0.01"></td>
+                        <td><input type="number" id="regularPiece" value="5000" step="1" oninput="autoCalcRSz('regular')"></td>
+                        <td><input type="number" id="regularCt" value="100" step="0.01" oninput="autoCalcRSz('regular')"></td>
                         <td><span class="calc-val" id="regularRate">0</span></td>
                         <td><input type="number" id="regularSize" value="50" step="0.1"></td>
                         <td><input type="number" id="regularPoPct" value="25" step="0.1"></td>
@@ -1479,20 +1479,29 @@
         document.getElementById('yieldLess').innerText = totalLessVal;
         document.getElementById('yieldNet').innerText = (100 - roughOut).toFixed(1) + "%";
 
-        calcBatch('kadhine', mfgRough);
-        calcBatch('regular', mfgRough);
+        calcBatch('kadhine', Math.round(roughAmntInr));
+        calcBatch('regular', Math.round(roughAmntInr));
     }
 
-    function calcBatch(prefix, mfgRough) {
+    function calcBatch(prefix, roughAmntInr) {
         var size = parseFloat(document.getElementById(prefix + 'Size').value) || 0;
         var poPct = parseFloat(document.getElementById(prefix + 'PoPct').value) || 0;
         var majuri = parseFloat(document.getElementById(prefix + 'Majuri').value) || 0;
-        document.getElementById(prefix + 'Rate').innerText = mfgRough;
+        document.getElementById(prefix + 'Rate').innerText = roughAmntInr;
         if (size > 0 && poPct > 0) {
-            var padtar = Math.round((((mfgRough * 100) / size) / (poPct / 100)) + majuri);
+            var padtar = Math.round(((size * majuri) + roughAmntInr) / (poPct / 100));
             document.getElementById(prefix + 'Padtar').innerText = padtar;
         } else {
             document.getElementById(prefix + 'Padtar').innerText = "0";
+        }
+    }
+
+    function autoCalcRSz(prefix) {
+        var pcs = parseFloat(document.getElementById(prefix + 'Piece').value) || 0;
+        var ct = parseFloat(document.getElementById(prefix + 'Ct').value) || 0;
+        var rsz = document.getElementById(prefix + 'Size');
+        if (pcs > 0 && ct > 0 && rsz) {
+            rsz.value = Math.round(pcs / ct);
         }
     }
 
@@ -2140,10 +2149,11 @@
         document.getElementById(prefix + '_roughPadtar').innerText = rp;
         var mfg = Math.round(rp / (1 - (g('roughOut') / 100)));
         document.getElementById(prefix + '_mfgRough').innerText = mfg;
+        var roughAmntInr = Math.round(r);
         var ks = g('kadhineSize'), kp = g('kadhinePoPct'), km = g('kadhineMajuri');
-        document.getElementById(prefix + '_kadhinePadtar').innerText = (ks > 0 && kp > 0) ? Math.round((((mfg*100)/ks)/(kp/100)) + km) : 0;
+        document.getElementById(prefix + '_kadhinePadtar').innerText = (ks > 0 && kp > 0) ? Math.round(((ks * km) + roughAmntInr) / (kp / 100)) : 0;
         var rs = g('regularSize'), rpo = g('regularPoPct'), rm = g('regularMajuri');
-        document.getElementById(prefix + '_regularPadtar').innerText = (rs > 0 && rpo > 0) ? Math.round((((mfg*100)/rs)/(rpo/100)) + rm) : 0;
+        document.getElementById(prefix + '_regularPadtar').innerText = (rs > 0 && rpo > 0) ? Math.round(((rs * rm) + roughAmntInr) / (rpo / 100)) : 0;
     }
 
     function compareSave(prefix) {
