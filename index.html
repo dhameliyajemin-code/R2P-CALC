@@ -22,6 +22,18 @@
             --gold-highlight: #f7e7b4;
             --gold-border: #d4a843;
         }
+        .theme-sapphire {
+            --bg-crystal: #f0f4fa;
+            --lb-light: #dce6f0;
+            --lb-mid: #b8cce0;
+            --lb-deep: #3a5a7a;
+            --text-dark: #1a2a3a;
+            --border-shimmer: #a8bcd0;
+            --input-focus: #5a7a9a;
+            --success-clean: #1e5a7a;
+            --gold-highlight: #d4e4f4;
+            --gold-border: #3a7aba;
+        }
 
         * {
             box-sizing: border-box;
@@ -1122,6 +1134,14 @@
             <button onclick="newCostSheet()" style="width:100%;height:40px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.85rem;">+ Add New Cost</button>
         </div>
 
+        <!-- Theme -->
+        <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
+            <h3 style="font-size:0.85rem;margin-bottom:6px;">🎨 Theme</h3>
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">
+                <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)"> Sapphire Blue Theme
+            </label>
+        </div>
+
         <!-- Masters Section -->
         <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
             <h3 style="font-size:0.85rem;margin-bottom:6px;">▤ Rough Article Master</h3>
@@ -1706,6 +1726,14 @@
         var val = localStorage.getItem('autoFillDefaults') === '1';
         if (af) af.checked = val;
         if (afs) afs.checked = val;
+        // Theme toggle
+        var tt = document.getElementById('themeToggle');
+        if (tt) tt.checked = localStorage.getItem('sapphireTheme') === '1';
+    }
+
+    function toggleTheme(on) {
+        document.body.classList.toggle('theme-sapphire', on);
+        localStorage.setItem('sapphireTheme', on ? '1' : '0');
     }
 
     function newCostSheet() {
@@ -2181,16 +2209,24 @@
     function renderLogs() {
         populateFilters();
         var history = getFilteredHistory();
+        // Sort faved to top, then by time desc
+        history.sort(function(a,b) {
+            if (a.faved && !b.faved) return -1;
+            if (!a.faved && b.faved) return 1;
+            return (b.timestamp||'').localeCompare(a.timestamp||'');
+        });
         var tbody = document.querySelector('#logTable tbody');
         if (!tbody) return;
         if (history.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="log-empty">No entries match filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="log-empty">No entries match filters.</td></tr>';
             document.getElementById('selectionBar').style.display = 'none';
             return;
         }
         tbody.innerHTML = '';
         history.forEach(function(item, idx) {
             var disp = item.ts_display || (item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '-');
+            var star = item.faved ? '★' : '☆';
+            var starColor = item.faved ? 'color:#d4a849;' : 'color:var(--lb-deep);opacity:0.5;';
             tbody.innerHTML += '<tr>' +
                 '<td style="text-align:center;"><input type="checkbox" class="entry-check" data-id="' + item.id + '" onchange="updateSelectionBar()" style="width:14px;height:14px;cursor:pointer;"></td>' +
                 '<td style="white-space:nowrap;font-size:0.7rem;">' + disp + '</td>' +
@@ -2199,6 +2235,7 @@
                 '<td style="background:var(--lb-light);font-weight:bold;">' + (item.kadhine||'-') + '</td>' +
                 '<td style="background:var(--lb-light);font-weight:bold;">' + (item.regular||'-') + '</td>' +
                 '<td style="white-space:nowrap;font-size:0;">' +
+                    '<button class="log-action-btn" onclick="toggleFav(\'' + item.id + '\')" title="Favourite" style="' + starColor + 'font-size:0.75rem;">' + star + '</button>' +
                     '<button class="log-action-btn" onclick="openViewEntry(' + idx + ')" title="View Full" style="font-weight:800;">👁</button>' +
                     '<button class="log-action-btn" onclick="openDetail(' + idx + ')" title="Download Image" style="margin-left:2px;">🖼</button>' +
                     '<button class="log-action-btn" onclick="shareLogEntry(' + idx + ')" title="WhatsApp Share" style="margin-left:2px;">💬</button>' +
@@ -2207,6 +2244,19 @@
         });
         document.getElementById('selectAllCheck').checked = false;
         updateSelectionBar();
+    }
+
+    function toggleFav(id) {
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].id === id) {
+                all[i].faved = !all[i].faved;
+                break;
+            }
+        }
+        localStorage.setItem('diamondHistory', JSON.stringify(all));
+        renderLogs();
+        autoSync();
     }
 
     function toggleSelectAll(checked) {
@@ -2271,19 +2321,6 @@
         }, 200);
     }
 
-    function deleteSelected() {
-        var ids = getSelectedIds();
-        if (ids.length === 0) return;
-        requirePIN(function() {
-            if (!confirm('Delete ' + ids.length + ' selected entries?')) return;
-            var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
-            all = all.filter(function(h) { return ids.indexOf(h.id) < 0; });
-            localStorage.setItem('diamondHistory', JSON.stringify(all));
-            renderLogs();
-            autoSync();
-        });
-    }
-
     function getStoredPIN() { return localStorage.getItem('adminPIN') || ''; }
 
     function requirePIN(callback) {
@@ -2343,6 +2380,9 @@
         el.style.color = color;
     }
 
+    /* ───── UNDO DELETE ───── */
+    var _undoStack = null;
+
     function deleteEntry(idx) {
         requirePIN(function() {
             var history = getFilteredHistory();
@@ -2350,11 +2390,54 @@
             var item = history[idx];
             if (!confirm('Delete entry for ' + (item.article||'-') + '?')) return;
             var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+            var removed = all.filter(function(h) { return h.id === item.id; });
             all = all.filter(function(h) { return h.id !== item.id; });
             localStorage.setItem('diamondHistory', JSON.stringify(all));
+            _undoStack = {items: removed, action: 'delete'};
             renderLogs();
             autoSync();
+            showUndoToast();
         });
+    }
+
+    function deleteSelected() {
+        var ids = getSelectedIds();
+        if (ids.length === 0) return;
+        requirePIN(function() {
+            if (!confirm('Delete ' + ids.length + ' selected entries?')) return;
+            var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+            var removed = all.filter(function(h) { return ids.indexOf(h.id) >= 0; });
+            all = all.filter(function(h) { return ids.indexOf(h.id) < 0; });
+            localStorage.setItem('diamondHistory', JSON.stringify(all));
+            _undoStack = {items: removed, action: 'delete'};
+            renderLogs();
+            autoSync();
+            showUndoToast();
+        });
+    }
+
+    function showUndoToast() {
+        var toast = document.getElementById('saveToast');
+        document.getElementById('toastMsg').innerText = '🗑 Entry deleted!';
+        var btn = toast.querySelector('button');
+        btn.style.display = '';
+        btn.innerText = '↩ Undo';
+        btn.onclick = function() {
+            if (!_undoStack) return;
+            var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+            _undoStack.items.forEach(function(r) { all.push(r); });
+            localStorage.setItem('diamondHistory', JSON.stringify(all));
+            _undoStack = null;
+            renderLogs();
+            autoSync();
+            toast.style.display = 'none';
+        };
+        toast.style.display = 'flex';
+        // Auto-hide after 3.5s (clear undo)
+        setTimeout(function() {
+            _undoStack = null;
+            if (toast.style.display !== 'none') toast.style.display = 'none';
+        }, 3500);
     }
 
     var _editIdx = -1;
@@ -2979,6 +3062,10 @@
         document.getElementById('dashSearch').addEventListener('input', dashSearchLive);
         // Sync admin UI
         syncDefaultsUI();
+        // Apply theme
+        if (localStorage.getItem('sapphireTheme') === '1') {
+            document.body.classList.add('theme-sapphire');
+        }
     };
 
     /* ───── PWA ───── */
