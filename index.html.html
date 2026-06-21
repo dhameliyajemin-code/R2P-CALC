@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diamond Cost Master</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg-crystal: #fcfdfd;
+            --lb-light: #f5efe6;
+            --lb-mid: #e8dcce;
+            --lb-deep: #8c7662;
+            --text-dark: #2c2520;
+            --border-shimmer: #dcd6cd;
+            --input-focus: #bda28a;
+            --success-clean: #4b6b5a;
+            --whatsapp-color: #25d366;
+            --gold-highlight: #f7e7b4;
+            --gold-border: #d4a843;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f7f5f2 0%, #eae3da 100%);
+            color: var(--text-dark);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 430px;
+            background: var(--bg-crystal);
+            border: 1px solid var(--border-shimmer);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(140, 118, 98, 0.12);
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* Top Nav Bar */
+        .top-bar {
+            width: 100%;
+            max-width: 430px;
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            margin-bottom: 6px;
+        }
+        .top-bar .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--lb-deep);
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .top-bar .title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--lb-deep);
+            flex: 1;
+            text-align: center;
+        }
+        .top-bar .spacer { width: 36px; }
+
+        /* Dashboard */
+        .dash-logo {
+            text-align: center;
+            padding: 30px 0 10px 0;
+        }
+        .dash-logo h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--lb-deep);
+            letter-spacing: 1px;
+        }
+        .dash-logo p {
+            font-size: 0.8rem;
+            color: var(--lb-deep);
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        .dash-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px 10px 30px 10px;
+        }
+        .dash-btn {
+            height: 56px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.1s;
+        }
+        .dash-btn:active { transform: scale(0.97); }
+        .dash-btn .icon { font-size: 1.3rem; }
+        .dash-btn-cost { background: linear-gradient(135deg, #8c7662, #a8927e); }
+        .dash-btn-data { background: linear-gradient(135deg, #4b6b5a, #6b8a7a); }
+        .dash-btn-master { background: linear-gradient(135deg, #94a3b8, #b0bec5); }
+
+        /* Cost Sheet Layout */
+        #shareable-zone {
+            background: var(--bg-crystal);
+            padding: 2px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.15rem;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--lb-mid);
+            padding-bottom: 6px;
+            font-weight: 800;
+        }
+
+        .sheet-row {
+            display: grid;
+            grid-template-columns: 1.1fr 0.7fr 0.7fr 0.8fr;
+            align-items: center;
+            padding: 5px 2px;
+            border-bottom: 1px solid #f0eae1;
+            min-height: 32px;
+            gap: 3px;
+        }
+        .sheet-row .label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #4a3f35;
+            white-space: nowrap;
+        }
+        .sheet-row .val-input input,
+        .sheet-row .val-input select {
+            width: 100%;
+            height: 28px;
+            padding: 2px 4px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #ffffff;
+            color: var(--text-dark);
+            text-align: right;
+        }
+        .sheet-row .val-input select { text-align: left; }
+        .sheet-row .val-input input:focus,
+        .sheet-row .val-input select:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 2px rgba(140,118,98,0.12);
+        }
+        .sheet-row .btn-manage {
+            background: var(--lb-deep);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.6rem;
+            padding: 0 5px;
+            height: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .calc-val {
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-align: right;
+            padding: 0 4px;
+            color: var(--text-dark);
+        }
+        .calc-val.label-sm {
+            font-size: 0.7rem;
+            color: var(--lb-deep);
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .gold-val {
+            font-size: 0.88rem;
+            font-weight: 800;
+            text-align: right;
+            padding: 2px 8px;
+            background: var(--gold-highlight);
+            border: 1px solid var(--gold-border);
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 55px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+            background: var(--lb-light);
+            color: var(--lb-deep);
+            padding: 4px 8px;
+            margin: 8px 0 4px 0;
+            border-radius: 5px;
+            border-left: 4px solid var(--lb-deep);
+        }
+
+        .deduction-row {
+            display: grid;
+            grid-template-columns: 1.1fr 0.6fr 0.7fr 0.9fr;
+            align-items: center;
+            padding: 4px 2px;
+            border-bottom: 1px solid #f0eae1;
+            min-height: 30px;
+            gap: 3px;
+        }
+        .deduction-row .label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #4a3f35;
+        }
+        .deduction-row .val-input input {
+            width: 100%;
+            height: 26px;
+            padding: 2px 4px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #ffffff;
+            color: var(--text-dark);
+            text-align: right;
+        }
+        .deduction-row .val-input input:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 2px rgba(140,118,98,0.12);
+        }
+        .deduction-row .val {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-align: right;
+            padding: 0 4px;
+        }
+        .deduction-row .pct-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--lb-deep);
+        }
+
+        .yield-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            font-weight: bold;
+            padding: 5px 8px;
+            background: #fcfbfa;
+            border: 1px dashed var(--lb-mid);
+            border-radius: 5px;
+            margin: 6px 0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 44px;
+            text-align: left;
+            font-weight: normal;
+            resize: none;
+            margin-top: 2px;
+            padding: 5px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 8px;
+            font-size: 0.82rem;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 3px rgba(140,118,98,0.12);
+        }
+
+        .batch-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 6px;
+            margin-top: 6px;
+            background: linear-gradient(to bottom, #ffffff, var(--lb-light));
+            padding: 2px;
+        }
+        .batch-title {
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--lb-deep);
+            padding: 1px 3px;
+            border-bottom: 1px solid var(--lb-mid);
+            margin-bottom: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .batch-title .preset-badge {
+            background: var(--lb-deep);
+            color: white;
+            font-size: 0.5rem;
+            padding: 1px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .batch-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.6rem;
+            min-width: 360px;
+        }
+        .batch-table th {
+            padding: 2px 1px;
+            text-align: center;
+            background: var(--lb-light);
+            color: var(--lb-deep);
+            font-weight: 700;
+            font-size: 0.5rem;
+            border-bottom: 1px solid var(--lb-mid);
+        }
+        .batch-table td { padding: 1px; text-align: center; vertical-align: middle; }
+        .batch-table td input {
+            width: 100%;
+            height: 22px;
+            padding: 1px 2px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: #ffffff;
+            color: var(--text-dark);
+            text-align: center;
+        }
+        .batch-table td input:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 1px rgba(140,118,98,0.12);
+        }
+        .batch-table td .calc-val {
+            font-size: 0.65rem;
+            text-align: center;
+            display: block;
+        }
+        .batch-table td .gold-val {
+            font-size: 0.7rem;
+            text-align: center;
+            display: inline-block;
+            min-width: 38px;
+        }
+
+        .btn-group-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-group-share {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        button.action-btn {
+            height: 38px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-log { background-color: var(--lb-deep); }
+        .btn-download { background-color: var(--success-clean); }
+        .btn-wa-text { background-color: var(--whatsapp-color); }
+        .btn-clear { background-color: #94a3b8; }
+
+        .hide-in-screenshot .bg-calc-row { display: none !important; }
+        .bg-calc-row { display: flex !important; }
+
+        /* Old Data View */
+        .log-container {
+            background: var(--bg-crystal);
+            border: 1px solid var(--border-shimmer);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .log-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 2px solid var(--lb-light);
+            padding-bottom: 4px;
+        }
+        .log-header-row h3 {
+            font-size: 0.9rem;
+            color: var(--lb-deep);
+        }
+        .btn-export {
+            background: var(--success-clean);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            border: 1px solid var(--border-shimmer);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.72rem;
+            min-width: 420px;
+        }
+        th, td { padding: 6px 4px; text-align: left; border-bottom: 1px solid #f0eae1; }
+        th { background-color: var(--lb-light); color: var(--lb-deep); }
+
+        .log-empty {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--lb-deep);
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+
+        /* Article Master Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .overlay.show { display: flex; }
+        .overlay-panel {
+            background: var(--bg-crystal);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 380px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        .overlay-panel h3 {
+            font-size: 1rem;
+            color: var(--lb-deep);
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--lb-mid);
+            padding-bottom: 8px;
+        }
+        .article-add-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .article-add-row input {
+            flex: 1;
+            height: 36px;
+            text-align: left;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+        .article-add-row button {
+            height: 36px;
+            padding: 0 14px;
+            background: var(--lb-deep);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .article-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 6px;
+            border-bottom: 1px solid #f0eae1;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .article-list-item .del-btn {
+            background: none;
+            border: none;
+            color: #b91c1c;
+            font-size: 1.1rem;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 4px;
+        }
+        .article-list-empty {
+            text-align: center;
+            color: var(--lb-deep);
+            font-size: 0.85rem;
+            padding: 20px 0;
+            opacity: 0.6;
+        }
+        .overlay-close {
+            display: block;
+            width: 100%;
+            margin-top: 12px;
+            height: 40px;
+            background: #94a3b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* WhatsApp Text Master */
+        .wa-field-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 12px;
+        }
+        .wa-field-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 4px;
+            border-bottom: 1px solid #f0eae1;
+        }
+        .wa-field-row label {
+            flex: 1;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .wa-field-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--lb-deep);
+            cursor: pointer;
+        }
+        .wa-preview-box {
+            background: #f9f7f5;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 120px;
+            font-family: monospace;
+        }
+        .wa-textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 10px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 8px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            font-family: monospace;
+            resize: vertical;
+            background: #fff;
+            color: var(--text-dark);
+        }
+        .wa-textarea:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 2px rgba(140,118,98,0.12);
+        }
+        .wa-preview-box b { font-weight: 800; }
+        .wa-preview-box .wa-sep { color: var(--lb-deep); opacity: 0.5; }
+        .btn-wa-save {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            height: 40px;
+            background: var(--whatsapp-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* Old Data Filters */
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-bar select, .filter-bar input {
+            height: 32px;
+            padding: 2px 6px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #fff;
+            color: var(--text-dark);
+            flex: 1;
+            min-width: 0;
+        }
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none;
+            border-color: var(--input-focus);
+        }
+
+        .log-table-actions th:last-child, .log-table-actions td:last-child {
+            text-align: center;
+            min-width: 85px;
+        }
+        .log-action-btn {
+            background: none;
+            border: 1px solid #ccc;
+            font-size: 0.65rem;
+            cursor: pointer;
+            padding: 0 4px;
+            border-radius: 3px;
+            height: 20px;
+            line-height: 18px;
+            vertical-align: middle;
+        }
+        .log-action-btn:hover { background: #eee; }
+
+        /* Edit Dialog */
+        .edit-dialog-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0eae1;
+            font-size: 0.82rem;
+        }
+        .edit-dialog-row .edit-label { font-weight: 600; color: #4a3f35; }
+        .edit-dialog-row .edit-val { font-weight: 700; }
+        .btn-edit-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .btn-edit-replace {
+            height: 42px;
+            background: var(--lb-deep);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-edit-copy {
+            height: 42px;
+            background: var(--success-clean);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-edit-cancel {
+            height: 36px;
+            background: #94a3b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        /* Detail Summary View */
+        .detail-summary {
+            padding: 4px 0;
+        }
+        .detail-summary .ds-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0eae1;
+            font-size: 0.82rem;
+        }
+        .detail-summary .ds-label { font-weight: 600; color: #4a3f35; }
+        .detail-summary .ds-val { font-weight: 700; }
+        .detail-summary .ds-gold {
+            background: var(--gold-highlight);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--gold-border);
+            font-weight: 800;
+        }
+        .detail-summary .ds-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--lb-deep);
+            text-transform: uppercase;
+            margin-top: 8px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--lb-mid);
+        }
+        .btn-detail-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn-detail-group button {
+            height: 38px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Print styles for PDF */
+        @media print {
+            body * { visibility: hidden; }
+            #shareable-zone, #shareable-zone * { visibility: visible; }
+            #shareable-zone {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                padding: 10px;
+                background: white;
+            }
+            #shareable-zone .btn-fetch,
+            #shareable-zone .btn-manage,
+            #shareable-zone .preset-badge,
+            #shareable-zone textarea { display: none; }
+            #shareable-zone input { border: none; background: transparent; font-weight: 600; }
+            #shareable-zone .val-input input { border: none; background: transparent; }
+            #shareable-zone .batch-table td input { border: none; background: transparent; }
+            #shareable-zone .gold-val { border: 1px solid #d4a843; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { margin: 8mm; }
+        }
+
+        /* Compare View */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+        .compare-side {
+            background: var(--bg-crystal);
+            border: 1px solid var(--border-shimmer);
+            border-radius: 5px;
+            padding: 3px;
+            font-size: 0.55rem;
+        }
+        .compare-divider { display: none; }
+        .compare-field-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1px 0;
+            border-bottom: 1px solid #f0eae1;
+            min-height: 18px;
+        }
+        .compare-field-row .c-label {
+            font-weight: 600;
+            color: #4a3f35;
+            font-size: 0.5rem;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+        .compare-field-row .c-val {
+            font-weight: 700;
+            text-align: right;
+            font-size: 0.55rem;
+        }
+        .compare-field-row input, .compare-field-row select {
+            width: 48px;
+            height: 17px;
+            padding: 0 2px;
+            border: 1px solid var(--border-shimmer);
+            border-radius: 2px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            text-align: right;
+            background: #fff;
+        }
+        .compare-field-row select { text-align: left; width: 52px; }
+        .compare-field-row input:focus, .compare-field-row select:focus {
+            outline: none;
+            border-color: var(--input-focus);
+        }
+        .compare-field-row .c-gold {
+            background: var(--gold-highlight);
+            border: 1px solid var(--gold-border);
+            border-radius: 2px;
+            padding: 0 3px;
+            font-weight: 800;
+            font-size: 0.6rem;
+        }
+        .compare-section-title {
+            font-size: 0.48rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--lb-deep);
+            background: var(--lb-light);
+            padding: 1px 3px;
+            margin: 2px 0 1px 0;
+            border-radius: 2px;
+            border-left: 2px solid var(--lb-deep);
+        }
+        .compare-side h3 { font-size: 0.65rem !important; padding-bottom: 2px !important; margin-bottom: 3px !important; }
+        .compare-side button { font-size: 0.6rem !important; height: 24px !important; }
+    </style>
+</head>
+<body>
+
+<!-- DASHBOARD VIEW -->
+<div class="view active" id="view-dashboard">
+    <div class="container">
+        <div class="dash-logo">
+            <h1>Rough to Polish</h1>
+            <p>Calc</p>
+        </div>
+        <div class="dash-menu">
+            <button class="dash-btn dash-btn-cost" onclick="showView('costsheet')">
+                <span class="icon">◇</span> Cost Sheet
+            </button>
+            <button class="dash-btn dash-btn-data" onclick="showView('olddata')">
+                <span class="icon">☰</span> Old Data
+            </button>
+            <button class="dash-btn dash-btn-master" onclick="showView('masters')">
+                <span class="icon">⚙</span> Masters
+            </button>
+            <button class="dash-btn dash-btn-cost" onclick="showView('compare')" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                <span class="icon">⇄</span> Compare
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MASTERS VIEW -->
+<div class="view" id="view-masters">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <span class="title">Masters</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container">
+        <div class="dash-menu" style="padding:10px 0;">
+            <button class="dash-btn dash-btn-master" onclick="openArticleMaster()">
+                <span class="icon">▤</span> Rough Article Master
+            </button>
+            <button class="dash-btn dash-btn-cost" onclick="showView('whatsappmaster')" style="background:linear-gradient(135deg,#25d366,#1da851);">
+                <span class="icon">💬</span> WhatsApp Text Master
+            </button>
+            <button class="dash-btn dash-btn-data" onclick="showView('datasync')">
+                <span class="icon">☁</span> Data Sync
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- COMPARE VIEW -->
+<div class="view" id="view-compare">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <span class="title">Compare</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container" style="padding:8px;">
+        <div class="compare-grid">
+            <div class="compare-side" id="compareA">
+                <h3 style="font-size:0.8rem;text-align:center;color:var(--lb-deep);border-bottom:2px solid var(--lb-mid);padding-bottom:4px;margin-bottom:6px;">Scenario A</h3>
+                <div id="compareFieldsA"></div>
+                <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px;">
+                    <button class="action-btn btn-log" onclick="compareSave('a')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">Save</button>
+                    <button class="action-btn btn-download" onclick="compareLoad('a')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">Load</button>
+                    <button class="action-btn btn-wa-text" onclick="compareWA('a')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">WA</button>
+                    <button class="action-btn" onclick="compareImg('a')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;background:var(--success-clean);">Img</button>
+                </div>
+            </div>
+            <div class="compare-divider"></div>
+            <div class="compare-side" id="compareB">
+                <h3 style="font-size:0.8rem;text-align:center;color:var(--lb-deep);border-bottom:2px solid var(--lb-mid);padding-bottom:4px;margin-bottom:6px;">Scenario B</h3>
+                <div id="compareFieldsB"></div>
+                <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px;">
+                    <button class="action-btn btn-log" onclick="compareSave('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">Save</button>
+                    <button class="action-btn btn-download" onclick="compareLoad('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">Load</button>
+                    <button class="action-btn btn-wa-text" onclick="compareWA('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;">WA</button>
+                    <button class="action-btn" onclick="compareImg('b')" style="flex:1;min-width:45px;height:24px;font-size:0.55rem;background:var(--success-clean);">Img</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DATA SYNC VIEW -->
+<div class="view" id="view-datasync">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('masters')">←</button>
+        <span class="title">Data Sync</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container">
+        <p style="font-size:0.78rem;color:var(--lb-deep);margin-bottom:14px;font-weight:600;">Export / Import JSON for manual backup. Configure Firebase below for auto real-time sync.</p>
+        <button class="dash-btn dash-btn-data" onclick="exportAllData()" style="height:44px;font-size:0.85rem;margin-bottom:8px;">
+            <span class="icon">⬇</span> Export All Data (JSON)
+        </button>
+        <button class="dash-btn dash-btn-master" onclick="document.getElementById('importInput').click()" style="height:44px;font-size:0.85rem;margin-bottom:12px;">
+            <span class="icon">⬆</span> Import Data from JSON
+        </button>
+        <input type="file" id="importInput" accept=".json" onchange="importAllData(event)" style="display:none;">
+        <div id="syncStatus" style="margin-top:8px;font-size:0.82rem;font-weight:600;color:var(--success-clean);text-align:center;"></div>
+
+        <div id="firebaseStatus" style="margin-top:12px;font-size:0.75rem;text-align:center;font-weight:600;"></div>
+        <div id="fbIndicator" style="margin-top:6px;font-size:0.7rem;text-align:center;font-weight:700;">
+            <span id="fbDot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;margin-right:4px;vertical-align:middle;"></span>
+            <span id="fbLabel" style="vertical-align:middle;">Inactive</span>
+        </div>
+    </div>
+</div>
+
+<!-- WHATSAPP TEXT MASTER VIEW -->
+<div class="view" id="view-whatsappmaster">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('masters')">←</button>
+        <span class="title">WhatsApp Text Master</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container">
+        <p style="font-size:0.75rem;color:var(--lb-deep);margin-bottom:10px;font-weight:600;">Toggle fields to include in the WhatsApp message. Preview updates live.</p>
+        <div class="wa-field-list" id="waFieldList"></div>
+        <button class="btn-wa-save" onclick="saveWATemplate()">Save Template</button>
+        <div style="margin-top:14px;font-size:0.75rem;font-weight:700;color:var(--lb-deep);border-bottom:1px solid var(--lb-mid);padding-bottom:4px;">Preview (editable)</div>
+        <textarea class="wa-textarea" id="waPreview">Toggle fields above to see preview...</textarea>
+        <button class="btn-wa-save" onclick="sendWAPreview()" style="margin-top:8px;background:var(--whatsapp-color);">Send as WhatsApp</button>
+    </div>
+</div>
+
+<!-- COST SHEET VIEW -->
+<div class="view" id="view-costsheet">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <span class="title">Cost Sheet</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="container">
+        <div id="shareable-zone">
+            <h2>Diamond Cost Sheet</h2>
+
+            <div class="sheet-row">
+                <span class="label">Article Name</span>
+                <div class="val-input" style="grid-column:span 2;">
+                    <select id="articleName" style="text-align:left;"></select>
+                </div>
+                <button class="btn-manage" onclick="openArticleMaster()" style="height:28px;">Manage</button>
+            </div>
+
+            <div class="sheet-row">
+                <span class="label">Rough Amnt/CT ($)</span>
+                <div class="val-input" style="grid-column:span 2;">
+                    <input type="number" id="roughAmntCt" value="28" step="0.01">
+                </div>
+                <span class="calc-val label-sm">$</span>
+            </div>
+
+            <div class="sheet-row">
+                <span class="label">USD to INR</span>
+                <button class="btn-fetch" onclick="fetchLiveRate()" style="height:28px;font-size:0.6rem;padding:0 6px;">Fetch Live</button>
+                <div class="val-input">
+                    <input type="number" id="usdToInr" value="96" step="0.01">
+                </div>
+                <span class="calc-val label-sm">rate</span>
+            </div>
+
+            <div class="sheet-row" style="background:#f9f7f5;">
+                <span class="label">Rough Amnt Inr</span>
+                <span class="calc-val label-sm">= Amt × Rate</span>
+                <span class="calc-val" id="roughAmntInr">0</span>
+                <span class="val"></span>
+            </div>
+
+            <div class="sheet-row">
+                <span class="label">Rough Expense</span>
+                <div class="val-input">
+                    <input type="number" id="roughExpensePct" value="2" step="0.1">
+                </div>
+                <span class="calc-val label-sm">%</span>
+                <span class="calc-val" id="roughExpenseVal">0</span>
+            </div>
+
+            <div class="sheet-row" style="background:#fcf8f0;">
+                <span class="label" style="font-weight:800;">Final Amnt</span>
+                <span class="calc-val label-sm">= Inr + Exp</span>
+                <span class="gold-val" id="finalAmnt">0</span>
+                <span class="val"></span>
+            </div>
+
+            <div class="section-title">Rough Selling Deductions</div>
+
+            <div class="deduction-row">
+                <span class="label">Rough Sell</span>
+                <div class="val-input"><input type="number" id="roughSellPct" value="5" step="0.1"></div>
+                <div class="val-input"><input type="number" id="roughSellRate" value="8000" step="1"></div>
+                <span class="val" id="roughSellVal">0</span>
+            </div>
+
+            <div class="deduction-row">
+                <span class="label">Rough Flat</span>
+                <div class="val-input"><input type="number" id="roughFlat" value="0" step="0.1"></div>
+                <div class="val-input"><input type="number" id="roughFlatRate" value="0" step="1"></div>
+                <span class="val" id="roughFlatVal">0</span>
+            </div>
+
+            <div class="deduction-row">
+                <span class="label">Extra Sell</span>
+                <div class="val-input"><input type="number" id="extraSell" value="0" step="0.1"></div>
+                <div class="val-input"><input type="number" id="extraSellRate" value="0" step="1"></div>
+                <span class="val" id="extraSellVal">0</span>
+            </div>
+
+            <div class="deduction-row" style="border-bottom:2px solid var(--lb-mid);">
+                <span class="label" style="font-weight:800;">Total</span>
+                <span class="val" id="totalPct" style="font-weight:700;">0</span>
+                <span class="val"></span>
+                <span class="val" id="totalLessVal" style="font-weight:700;color:#b45309;">0</span>
+            </div>
+
+            <div class="sheet-row">
+                <span class="label">Rough Padtar</span>
+                <span class="calc-val label-sm">= Final − Less</span>
+                <span class="calc-val" id="roughPadtar">0</span>
+                <span class="val"></span>
+            </div>
+
+            <div class="sheet-row">
+                <span class="label">Rough Out</span>
+                <div class="val-input">
+                    <input type="number" id="roughOut" value="20" step="0.1">
+                </div>
+                <span class="calc-val label-sm">% loss</span>
+                <span class="val"></span>
+            </div>
+
+            <div class="yield-bar">
+                <span>Deductions: <span id="yieldLess" style="color:#b45309;">0</span></span>
+                <span>Est. Net Yield: <span id="yieldNet" style="color:var(--success-clean);">100%</span></span>
+            </div>
+
+            <div class="sheet-row" style="background:#fcf8f0;">
+                <span class="label" style="font-weight:800;">MFG Rough</span>
+                <span class="calc-val label-sm">= Pad / (1−Out)</span>
+                <span class="gold-val" id="mfgRough">0</span>
+                <span class="val"></span>
+            </div>
+
+            <div class="batch-table-wrap">
+                <div class="batch-title">
+                    <span>+2 Kadhine</span>
+                    <span class="preset-badge" onclick="applyPreset('kadhine',50,25)">+2</span>
+                </div>
+                <table class="batch-table">
+                    <thead><tr><th>Pcs</th><th>RCt</th><th>RATE</th><th>RSz</th><th>PO%</th><th>Maj</th><th>PADTAR</th></tr></thead>
+                    <tbody><tr>
+                        <td><input type="number" id="kadhinePiece" value="5000" step="1"></td>
+                        <td><input type="number" id="kadhineCt" value="100" step="0.01"></td>
+                        <td><span class="calc-val" id="kadhineRate">0</span></td>
+                        <td><input type="number" id="kadhineSize" value="50" step="0.1"></td>
+                        <td><input type="number" id="kadhinePoPct" value="25" step="0.1"></td>
+                        <td><input type="number" id="kadhineMajuri" value="65" step="0.1"></td>
+                        <td><span class="gold-val" id="kadhinePadtar">0</span></td>
+                    </tr></tbody>
+                </table>
+            </div>
+            <div class="batch-table-wrap">
+                <div class="batch-title">
+                    <span>Regular</span>
+                    <span class="preset-badge" onclick="applyPreset('regular',52,24)">-2</span>
+                </div>
+                <table class="batch-table">
+                    <thead><tr><th>Pcs</th><th>RCt</th><th>RATE</th><th>RSz</th><th>PO%</th><th>Maj</th><th>PADTAR</th></tr></thead>
+                    <tbody><tr>
+                        <td><input type="number" id="regularPiece" value="5000" step="1"></td>
+                        <td><input type="number" id="regularCt" value="100" step="0.01"></td>
+                        <td><span class="calc-val" id="regularRate">0</span></td>
+                        <td><input type="number" id="regularSize" value="50" step="0.1"></td>
+                        <td><input type="number" id="regularPoPct" value="25" step="0.1"></td>
+                        <td><input type="number" id="regularMajuri" value="65" step="0.1"></td>
+                        <td><span class="gold-val" id="regularPadtar">0</span></td>
+                    </tr></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:8px;">
+                <label style="font-size:0.78rem;font-weight:700;color:var(--lb-deep);">Remarks / Notes:</label>
+                <textarea id="remarks" placeholder="Tap to write dynamic notes..."></textarea>
+            </div>
+        </div>
+
+    <div style="display:flex;gap:4px;margin-top:8px;">
+        <button class="action-btn" onclick="logData()" style="flex:1;height:28px;font-size:0.65rem;background:var(--lb-deep);color:#fff;">Save</button>
+        <button class="action-btn" onclick="downloadImage()" style="flex:1;height:28px;font-size:0.65rem;background:var(--success-clean);color:#fff;">🖼 Img</button>
+        <button class="action-btn" onclick="shareWhatsAppText()" style="flex:1;height:28px;font-size:0.65rem;background:var(--whatsapp-color);color:#fff;">💬 WA</button>
+        <button class="action-btn" onclick="clearCurrentRemarks()" style="flex:1;height:28px;font-size:0.65rem;background:#94a3b8;color:#fff;">✕ Clr</button>
+    </div>
+    </div>
+</div>
+
+<!-- OLD DATA VIEW -->
+<div class="view" id="view-olddata">
+    <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')">←</button>
+        <span class="title">Old Data</span>
+        <span class="spacer"></span>
+    </div>
+    <div class="log-container" style="max-width:430px;width:100%;">
+        <div class="log-header-row">
+            <h3>Calculation Logs</h3>
+            <button class="btn-export" onclick="exportToCSV()">Export Excel</button>
+        </div>
+        <div class="filter-bar">
+            <select id="filterMonth" onchange="onMonthChange()">
+                <option value="all">All Months</option>
+            </select>
+            <input type="date" id="filterDate" onchange="renderLogs()">
+            <select id="filterArticle" onchange="renderLogs()">
+                <option value="all">All Articles</option>
+            </select>
+        </div>
+        <div class="table-wrapper">
+            <table id="logTable" class="log-table-actions">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Article</th>
+                        <th>MFG</th>
+                        <th>+2 Pad.</th>
+                        <th>Reg Pad.</th>
+                        <th style="width:85px;">Act.</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DETAIL VIEW OVERLAY -->
+<div class="overlay" id="detailOverlay">
+    <div class="overlay-panel">
+        <h3 id="detailTitle">Entry Details</h3>
+        <div class="detail-summary" id="detailContent"></div>
+        <div class="btn-detail-group">
+            <button style="background:var(--success-clean);" onclick="detailDownloadImage()">Download Image</button>
+            <button style="background:var(--whatsapp-color);" onclick="detailSendText()">Send Text</button>
+        </div>
+        <button class="overlay-close" onclick="closeDetail()">Close</button>
+    </div>
+</div>
+
+<!-- EDIT DIALOG OVERLAY -->
+<div class="overlay" id="editOverlay">
+    <div class="overlay-panel">
+        <h3>Edit Log Entry</h3>
+        <div id="editContent"></div>
+        <div class="btn-edit-group">
+            <button class="btn-edit-replace" id="btnEditReplace">Replace (keep date)</button>
+            <button class="btn-edit-copy" id="btnEditCopy">Create New Copy</button>
+        </div>
+        <button class="btn-edit-cancel" onclick="closeEdit()">Cancel</button>
+    </div>
+</div>
+
+<!-- ARTICLE MASTER OVERLAY -->
+<div class="overlay" id="articleMasterOverlay">
+    <div class="overlay-panel">
+        <h3>Rough Article Master</h3>
+        <div class="article-add-row">
+            <input type="text" id="newArticleInput" placeholder="Add new article...">
+            <button onclick="addArticle()">Add</button>
+        </div>
+        <div id="articleListContainer"></div>
+        <button class="overlay-close" onclick="closeArticleMaster()">Done</button>
+    </div>
+</div>
+
+<script>
+    var DEFAULT_ARTICLES = ["Roza 75", "DTC", "Hawa 7565", "Noorba", "3 2 Extra", "Hawa 7x5"];
+    var firebaseApp = null, firebaseDb = null, firebaseListener = null;
+
+    function getFirebaseConfig() {
+        return {
+            apiKey: "AIzaSyCo2f14plPsJlcevCnqYdzaHu6xZsavjDU",
+            authDomain: "r2p-calc.firebaseapp.com",
+            databaseURL: "https://r2p-calc-default-rtdb.firebaseio.com",
+            projectId: "r2p-calc"
+        };
+    }
+
+    function initFirebase() {
+        var cfg = getFirebaseConfig();
+        if (!cfg || !cfg.apiKey || !cfg.databaseURL) { updateFbIndicator(false); return false; }
+        try {
+            if (firebaseApp) firebaseApp.delete();
+        } catch(e) {}
+        try {
+            firebaseApp = firebase.initializeApp(cfg, 'r2pApp');
+            firebaseDb = firebase.database(firebaseApp);
+            attachFirebaseListener();
+            updateFbIndicator(true);
+            setFirebaseStatus('Firebase connected', 'var(--success-clean)');
+            return true;
+        } catch(e) {
+            updateFbIndicator(false);
+            setFirebaseStatus('Firebase init error: ' + e.message, '#a33');
+            return false;
+        }
+    }
+
+    function attachFirebaseListener() {
+        if (firebaseListener) { firebaseListener.off(); firebaseListener = null; }
+        if (!firebaseDb) return;
+        firebaseListener = firebaseDb.ref('r2pData');
+        firebaseListener.on('value', function(snap) {
+            var data = snap.val();
+            if (!data) return;
+            var localTS = localStorage.getItem('fb_last_push');
+            if (data.lastSync && localTS && data.lastSync <= localTS) return;
+            var changed = false;
+            if (data.diamondHistory) {
+                var cur = JSON.parse(localStorage.getItem('diamondHistory') || '[]');
+                if (JSON.stringify(cur) !== JSON.stringify(data.diamondHistory)) {
+                    localStorage.setItem('diamondHistory', JSON.stringify(data.diamondHistory));
+                    changed = true;
+                }
+            }
+            if (data.articleMaster) {
+                var cur = JSON.parse(localStorage.getItem('articleMaster') || '[]');
+                if (JSON.stringify(cur) !== JSON.stringify(data.articleMaster)) {
+                    localStorage.setItem('articleMaster', JSON.stringify(data.articleMaster));
+                    changed = true;
+                }
+            }
+            if (data.waTemplate) {
+                localStorage.setItem('waTemplate', JSON.stringify(data.waTemplate));
+                changed = true;
+            }
+            if (changed) {
+                loadArticleDropdown();
+                renderLogs();
+                setFirebaseStatus('Auto-synced from Firebase', 'var(--success-clean)');
+            }
+        });
+    }
+
+    function syncAllToFirebase(cb) {
+        if (!firebaseDb) { if (cb) cb(false); return; }
+        var data = {
+            diamondHistory: JSON.parse(localStorage.getItem('diamondHistory') || '[]'),
+            articleMaster: JSON.parse(localStorage.getItem('articleMaster') || '[]'),
+            waTemplate: JSON.parse(localStorage.getItem('waTemplate') || '{}'),
+            lastSync: new Date().toISOString()
+        };
+        firebaseDb.ref('r2pData').set(data).then(function() {
+            localStorage.setItem('fb_last_push', data.lastSync);
+            setFirebaseStatus('Synced to Firebase', 'var(--success-clean)');
+            if (cb) cb(true);
+        }).catch(function(err) {
+            setFirebaseStatus('Sync error: ' + err.message, '#a33');
+            if (cb) cb(false);
+        });
+    }
+
+    function firebasePull() {
+        if (!firebaseDb) { setFirebaseStatus('Firebase not configured', '#a33'); return; }
+        firebaseDb.ref('r2pData').once('value', function(snap) {
+            var data = snap.val();
+            if (!data) { setFirebaseStatus('No data on Firebase', 'var(--lb-deep)'); return; }
+            if (data.diamondHistory) localStorage.setItem('diamondHistory', JSON.stringify(data.diamondHistory));
+            if (data.articleMaster) localStorage.setItem('articleMaster', JSON.stringify(data.articleMaster));
+            if (data.waTemplate) localStorage.setItem('waTemplate', JSON.stringify(data.waTemplate));
+            loadArticleDropdown();
+            renderLogs();
+            setFirebaseStatus('Pulled ' + (data.diamondHistory ? data.diamondHistory.length : 0) + ' entries from Firebase', 'var(--success-clean)');
+        }, function(err) {
+            setFirebaseStatus('Pull error: ' + err.message, '#a33');
+        });
+    }
+
+    function updateFbIndicator(active) {
+        var dot = document.getElementById('fbDot');
+        var label = document.getElementById('fbLabel');
+        if (!dot || !label) return;
+        dot.style.background = active ? '#2ecc71' : '#aaa';
+        label.innerText = active ? 'Active' : 'Inactive';
+    }
+
+    function setFirebaseStatus(msg, color) {
+        var el = document.getElementById('firebaseStatus');
+        if (!el) return;
+        el.innerText = msg;
+        if (color) el.style.color = color;
+    }
+
+    // Auto-sync hook for mutations
+    function autoSync() {
+        if (firebaseDb) syncAllToFirebase();
+    }
+
+    function showView(name) {
+        document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+        document.getElementById('view-' + name).classList.add('active');
+        if (name === 'costsheet') { loadArticleDropdown(); calculate(); }
+        if (name === 'olddata') { renderLogs(); }
+        if (name === 'whatsappmaster') { renderWAFields(); renderWAPreview(); }
+        if (name === 'compare') { renderCompare('a'); renderCompare('b'); compareCalc('a'); compareCalc('b'); }
+    }
+
+    function getArticles() {
+        var arts = localStorage.getItem('articleMaster');
+        if (!arts) {
+            localStorage.setItem('articleMaster', JSON.stringify(DEFAULT_ARTICLES));
+            return DEFAULT_ARTICLES.slice();
+        }
+        return JSON.parse(arts);
+    }
+
+    function saveArticles(list) {
+        localStorage.setItem('articleMaster', JSON.stringify(list));
+        autoSync();
+    }
+
+    function loadArticleDropdown() {
+        var sel = document.getElementById('articleName');
+        var arts = getArticles();
+        sel.innerHTML = '';
+        arts.forEach(function(a) {
+            var opt = document.createElement('option');
+            opt.value = a;
+            opt.textContent = a;
+            sel.appendChild(opt);
+        });
+    }
+
+    function openArticleMaster() {
+        document.getElementById('articleMasterOverlay').classList.add('show');
+        renderArticleList();
+    }
+
+    function closeArticleMaster() {
+        document.getElementById('articleMasterOverlay').classList.remove('show');
+        loadArticleDropdown();
+        calculate();
+    }
+
+    function addArticle() {
+        var input = document.getElementById('newArticleInput');
+        var val = input.value.trim();
+        if (!val) return;
+        var arts = getArticles();
+        if (arts.indexOf(val) !== -1) { alert('Article already exists.'); return; }
+        arts.push(val);
+        saveArticles(arts);
+        input.value = '';
+        renderArticleList();
+    }
+
+    function deleteArticle(name) {
+        var arts = getArticles();
+        var idx = arts.indexOf(name);
+        if (idx !== -1) arts.splice(idx, 1);
+        saveArticles(arts);
+        renderArticleList();
+    }
+
+    function renderArticleList() {
+        var container = document.getElementById('articleListContainer');
+        var arts = getArticles();
+        if (arts.length === 0) {
+            container.innerHTML = '<div class="article-list-empty">No articles yet. Add one above.</div>';
+            return;
+        }
+        var html = '';
+        arts.forEach(function(a) {
+            html += '<div class="article-list-item"><span>' + a + '</span><button class="del-btn" onclick="deleteArticle(\'' + a.replace(/'/g,"\\'") + '\')">✕</button></div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function applyPreset(prefix, size, po) {
+        document.getElementById(prefix + 'Size').value = size;
+        document.getElementById(prefix + 'PoPct').value = po;
+        calculate();
+    }
+
+    function clearCurrentRemarks() {
+        document.getElementById('remarks').value = "";
+    }
+
+    function calculate() {
+        var roughAmntCt = parseFloat(document.getElementById('roughAmntCt').value) || 0;
+        var usdToInr = parseFloat(document.getElementById('usdToInr').value) || 0;
+        var roughExpensePct = parseFloat(document.getElementById('roughExpensePct').value) || 0;
+        var roughSellPct = parseFloat(document.getElementById('roughSellPct').value) || 0;
+        var roughSellRate = parseFloat(document.getElementById('roughSellRate').value) || 0;
+        var roughFlat = parseFloat(document.getElementById('roughFlat').value) || 0;
+        var roughFlatRate = parseFloat(document.getElementById('roughFlatRate').value) || 0;
+        var extraSell = parseFloat(document.getElementById('extraSell').value) || 0;
+        var extraSellRate = parseFloat(document.getElementById('extraSellRate').value) || 0;
+        var roughOut = parseFloat(document.getElementById('roughOut').value) || 0;
+
+        var roughAmntInr = roughAmntCt * usdToInr;
+        document.getElementById('roughAmntInr').innerText = Math.round(roughAmntInr);
+
+        var expenseVal = (roughAmntInr * roughExpensePct) / 100;
+        document.getElementById('roughExpenseVal').innerText = Math.round(expenseVal);
+
+        var finalAmnt = Math.round(roughAmntInr + expenseVal);
+        document.getElementById('finalAmnt').innerText = finalAmnt;
+
+        var sellLessVal = Math.round((roughSellPct * roughSellRate) / 100);
+        var flatLessVal = Math.round((roughFlat * roughFlatRate) / 100);
+        var extraLessVal = Math.round((extraSell * extraSellRate) / 100);
+
+        document.getElementById('roughSellVal').innerText = sellLessVal;
+        document.getElementById('roughFlatVal').innerText = flatLessVal;
+        document.getElementById('extraSellVal').innerText = extraLessVal;
+
+        var totalPct = roughSellPct + roughFlat + extraSell;
+        var totalLessVal = sellLessVal + flatLessVal + extraLessVal;
+        document.getElementById('totalPct').innerText = totalPct;
+        document.getElementById('totalLessVal').innerText = totalLessVal;
+
+        var roughPadtar = finalAmnt - totalLessVal;
+        document.getElementById('roughPadtar').innerText = roughPadtar;
+
+        var mfgRough = Math.round(roughPadtar / (1 - (roughOut / 100)));
+        document.getElementById('mfgRough').innerText = mfgRough;
+
+        document.getElementById('yieldLess').innerText = totalLessVal;
+        document.getElementById('yieldNet').innerText = (100 - roughOut).toFixed(1) + "%";
+
+        calcBatch('kadhine', mfgRough);
+        calcBatch('regular', mfgRough);
+    }
+
+    function calcBatch(prefix, mfgRough) {
+        var size = parseFloat(document.getElementById(prefix + 'Size').value) || 0;
+        var poPct = parseFloat(document.getElementById(prefix + 'PoPct').value) || 0;
+        var majuri = parseFloat(document.getElementById(prefix + 'Majuri').value) || 0;
+        document.getElementById(prefix + 'Rate').innerText = mfgRough;
+        if (size > 0 && poPct > 0) {
+            var padtar = Math.round((((mfgRough * 100) / size) / (poPct / 100)) + majuri);
+            document.getElementById(prefix + 'Padtar').innerText = padtar;
+        } else {
+            document.getElementById(prefix + 'Padtar').innerText = "0";
+        }
+    }
+
+    function captureInputs(extra) {
+        var rec = {
+            timestamp: new Date().toISOString(),
+            ts_display: new Date().toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}),
+            article: document.getElementById('articleName').value,
+            roughAmntCt: document.getElementById('roughAmntCt').value,
+            usdToInr: document.getElementById('usdToInr').value,
+            roughExpensePct: document.getElementById('roughExpensePct').value,
+            roughSellPct: document.getElementById('roughSellPct').value,
+            roughSellRate: document.getElementById('roughSellRate').value,
+            roughFlat: document.getElementById('roughFlat').value,
+            roughFlatRate: document.getElementById('roughFlatRate').value,
+            extraSell: document.getElementById('extraSell').value,
+            extraSellRate: document.getElementById('extraSellRate').value,
+            roughOut: document.getElementById('roughOut').value,
+            kadhineSize: document.getElementById('kadhineSize').value,
+            kadhinePoPct: document.getElementById('kadhinePoPct').value,
+            kadhineMajuri: document.getElementById('kadhineMajuri').value,
+            regularSize: document.getElementById('regularSize').value,
+            regularPoPct: document.getElementById('regularPoPct').value,
+            regularMajuri: document.getElementById('regularMajuri').value,
+            mfg: document.getElementById('mfgRough').innerText,
+            kadhine: document.getElementById('kadhinePadtar').innerText,
+            regular: document.getElementById('regularPadtar').innerText,
+            remarks: document.getElementById('remarks').value || '-'
+        };
+        if (extra) { for (var k in extra) rec[k] = extra[k]; }
+        return rec;
+    }
+
+    function logData() {
+        var record = captureInputs({id: Date.now() + '_' + Math.random().toString(36).substr(2,6)});
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        history.unshift(record);
+        localStorage.setItem('diamondHistory', JSON.stringify(history));
+        renderLogs();
+        autoSync();
+    }
+
+    function populateFilters() {
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        var monthSel = document.getElementById('filterMonth');
+        var articleSel = document.getElementById('filterArticle');
+        if (!monthSel || !articleSel) return;
+        var months = {}; var articles = {};
+        history.forEach(function(r) {
+            if (r.timestamp) {
+                var d = new Date(r.timestamp);
+                if (!isNaN(d)) {
+                    var m = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                    months[m] = d.toLocaleString('en-IN', {month:'long',year:'numeric'});
+                }
+            }
+            if (r.article) articles[r.article] = true;
+        });
+        monthSel.innerHTML = '<option value="all">All Months</option>';
+        Object.keys(months).sort().reverse().forEach(function(m) {
+            monthSel.innerHTML += '<option value="' + m + '">' + months[m] + '</option>';
+        });
+        articleSel.innerHTML = '<option value="all">All Articles</option>';
+        var arts = getArticles();
+        arts.forEach(function(a) {
+            articleSel.innerHTML += '<option value="' + a.replace(/'/g,'&#39;') + '">' + a + '</option>';
+        });
+    }
+
+    function onMonthChange() {
+        var fd = document.getElementById('filterDate');
+        if (fd) fd.value = '';
+        renderLogs();
+    }
+
+    function getFilteredHistory() {
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        var fm = document.getElementById('filterMonth');
+        var fd = document.getElementById('filterDate');
+        var fa = document.getElementById('filterArticle');
+        var monthVal = fm ? fm.value : 'all';
+        var dateVal = fd ? fd.value : '';
+        var articleVal = fa ? fa.value : 'all';
+        return history.filter(function(r) {
+            if (!r.timestamp) return articleVal === 'all';
+            var d = new Date(r.timestamp);
+            if (isNaN(d)) return articleVal === 'all';
+            if (dateVal) {
+                var y = d.getFullYear();
+                var m = String(d.getMonth()+1).padStart(2,'0');
+                var day = String(d.getDate()).padStart(2,'0');
+                if (y + '-' + m + '-' + day !== dateVal) return false;
+            } else if (monthVal !== 'all') {
+                var m2 = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                if (m2 !== monthVal) return false;
+            }
+            if (articleVal !== 'all' && r.article !== articleVal) return false;
+            return true;
+        });
+    }
+
+    function renderLogs() {
+        populateFilters();
+        var history = getFilteredHistory();
+        var tbody = document.querySelector('#logTable tbody');
+        if (!tbody) return;
+        if (history.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="log-empty">No entries match filters.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        history.forEach(function(item, idx) {
+            var disp = item.ts_display || (item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '-');
+            tbody.innerHTML += '<tr>' +
+                '<td style="white-space:nowrap;font-size:0.7rem;">' + disp + '</td>' +
+                '<td><b>' + (item.article||'-') + '</b></td>' +
+                '<td>' + (item.mfg||'-') + '</td>' +
+                '<td style="background:var(--lb-light);font-weight:bold;">' + (item.kadhine||'-') + '</td>' +
+                '<td style="background:var(--lb-light);font-weight:bold;">' + (item.regular||'-') + '</td>' +
+                '<td style="white-space:nowrap;font-size:0;">' +
+                    '<button class="log-action-btn" onclick="openDetail(' + idx + ')" title="Download Image">🖼</button>' +
+                    '<button class="log-action-btn" onclick="shareLogEntry(' + idx + ')" title="WhatsApp Share" style="margin-left:2px;">💬</button>' +
+                    '<button class="log-action-btn" onclick="deleteEntry(' + idx + ')" title="Clear" style="margin-left:2px;">✕</button>' +
+                '</td></tr>';
+        });
+    }
+
+    function deleteEntry(idx) {
+        var history = getFilteredHistory();
+        if (idx < 0 || idx >= history.length) return;
+        var item = history[idx];
+        if (!confirm('Delete entry for ' + (item.article||'-') + '?')) return;
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        all = all.filter(function(h) { return h.id !== item.id; });
+        localStorage.setItem('diamondHistory', JSON.stringify(all));
+        renderLogs();
+        autoSync();
+    }
+
+    var _editIdx = -1;
+    function openEdit(idx) {
+        var history = getFilteredHistory();
+        if (idx < 0 || idx >= history.length) return;
+        _editIdx = idx;
+        var item = history[idx];
+        // Load values into cost sheet
+        if (item.roughAmntCt) document.getElementById('roughAmntCt').value = item.roughAmntCt;
+        if (item.usdToInr) document.getElementById('usdToInr').value = item.usdToInr;
+        if (item.roughExpensePct) document.getElementById('roughExpensePct').value = item.roughExpensePct;
+        if (item.roughSellPct) document.getElementById('roughSellPct').value = item.roughSellPct;
+        if (item.roughSellRate) document.getElementById('roughSellRate').value = item.roughSellRate;
+        if (item.roughFlat) document.getElementById('roughFlat').value = item.roughFlat;
+        if (item.roughFlatRate) document.getElementById('roughFlatRate').value = item.roughFlatRate;
+        if (item.extraSell) document.getElementById('extraSell').value = item.extraSell;
+        if (item.extraSellRate) document.getElementById('extraSellRate').value = item.extraSellRate;
+        if (item.roughOut) document.getElementById('roughOut').value = item.roughOut;
+        if (item.kadhineSize) document.getElementById('kadhineSize').value = item.kadhineSize;
+        if (item.kadhinePoPct) document.getElementById('kadhinePoPct').value = item.kadhinePoPct;
+        if (item.kadhineMajuri) document.getElementById('kadhineMajuri').value = item.kadhineMajuri;
+        if (item.regularSize) document.getElementById('regularSize').value = item.regularSize;
+        if (item.regularPoPct) document.getElementById('regularPoPct').value = item.regularPoPct;
+        if (item.regularMajuri) document.getElementById('regularMajuri').value = item.regularMajuri;
+        if (item.article) {
+            var sel = document.getElementById('articleName');
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === item.article) { sel.selectedIndex = i; break; }
+            }
+        }
+        if (item.remarks && item.remarks !== '-') document.getElementById('remarks').value = item.remarks;
+        calculate();
+
+        // Show dialog
+        var ec = document.getElementById('editContent');
+        if (!ec) return;
+        ec.innerHTML =
+            '<div class="edit-dialog-row"><span class="edit-label">Article</span><span class="edit-val">' + (item.article||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">MFG Rough</span><span class="edit-val">' + (item.mfg||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">+2 Padtar</span><span class="edit-val">' + (item.kadhine||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">Regular Padtar</span><span class="edit-val">' + (item.regular||'-') + '</span></div>' +
+            '<div class="edit-dialog-row"><span class="edit-label">Remarks</span><span class="edit-val">' + (item.remarks||'-') + '</span></div>' +
+            '<p style="font-size:0.75rem;color:var(--lb-deep);margin-top:8px;">Data loaded into Cost Sheet. Choose action:</p>';
+        document.getElementById('btnEditReplace').onclick = replaceEntry;
+        document.getElementById('btnEditCopy').onclick = copyEntry;
+        document.getElementById('editOverlay').classList.add('show');
+    }
+
+    function closeEdit() {
+        document.getElementById('editOverlay').classList.remove('show');
+        _editIdx = -1;
+    }
+
+    function replaceEntry() {
+        if (_editIdx < 0) return;
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        // Find real index in full history from filtered
+        var filtered = getFilteredHistory();
+        var item = filtered[_editIdx];
+        var realIdx = -1;
+        for (var i = 0; i < history.length; i++) {
+            if (history[i].id === item.id) { realIdx = i; break; }
+        }
+        if (realIdx === -1) return;
+        var newRec = captureInputs({id: item.id, timestamp: item.timestamp, ts_display: item.ts_display});
+        history[realIdx] = newRec;
+        localStorage.setItem('diamondHistory', JSON.stringify(history));
+        closeEdit();
+        renderLogs();
+        calculate();
+    }
+
+    function copyEntry() {
+        if (_editIdx < 0) return;
+        var newRec = captureInputs({id: Date.now() + '_' + Math.random().toString(36).substr(2,6)});
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        history.unshift(newRec);
+        localStorage.setItem('diamondHistory', JSON.stringify(history));
+        closeEdit();
+        renderLogs();
+        calculate();
+    }
+
+    var _detailIdx = -1;
+    function openDetail(idx) {
+        var history = getFilteredHistory();
+        if (idx < 0 || idx >= history.length) return;
+        _detailIdx = idx;
+        var item = history[idx];
+        var dc = document.getElementById('detailContent');
+        if (!dc) return;
+        var disp = item.ts_display || (item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '-');
+        var html = '<div class="ds-row"><span class="ds-label">Date/Time</span><span class="ds-val">' + disp + '</span></div>';
+        html += '<div class="ds-row"><span class="ds-label">Article</span><span class="ds-val">' + (item.article||'-') + '</span></div>';
+        if (item.roughAmntCt) html += '<div class="ds-row"><span class="ds-label">Rough Amnt/CT</span><span class="ds-val">$' + item.roughAmntCt + '</span></div>';
+        if (item.usdToInr) html += '<div class="ds-row"><span class="ds-label">USD to INR</span><span class="ds-val">\u20B9' + item.usdToInr + '</span></div>';
+        if (item.roughExpensePct) html += '<div class="ds-row"><span class="ds-label">Expense</span><span class="ds-val">' + item.roughExpensePct + '%</span></div>';
+        html += '<div class="ds-title">Outputs</div>';
+        html += '<div class="ds-row"><span class="ds-label">MFG Rough</span><span class="ds-val ds-gold">\u20B9' + (item.mfg||'-') + '</span></div>';
+        html += '<div class="ds-row"><span class="ds-label">+2 Kadhine Padtar</span><span class="ds-val ds-gold">\u20B9' + (item.kadhine||'-') + '</span></div>';
+        html += '<div class="ds-row"><span class="ds-label">Regular Padtar</span><span class="ds-val ds-gold">\u20B9' + (item.regular||'-') + '</span></div>';
+        if (item.kadhineSize) html += '<div class="ds-row"><span class="ds-label">+2 Size / PO / Maj</span><span class="ds-val">' + item.kadhineSize + ' / ' + (item.kadhinePoPct||'-') + '% / ' + (item.kadhineMajuri||'-') + '</span></div>';
+        if (item.regularSize) html += '<div class="ds-row"><span class="ds-label">Reg Size / PO / Maj</span><span class="ds-val">' + item.regularSize + ' / ' + (item.regularPoPct||'-') + '% / ' + (item.regularMajuri||'-') + '</span></div>';
+        html += '<div class="ds-row"><span class="ds-label">Remarks</span><span class="ds-val">' + (item.remarks||'-') + '</span></div>';
+        dc.innerHTML = html;
+        document.getElementById('detailTitle').innerText = item.article + ' — Details';
+        document.getElementById('detailOverlay').classList.add('show');
+    }
+
+    function closeDetail() {
+        document.getElementById('detailOverlay').classList.remove('show');
+        _detailIdx = -1;
+    }
+
+    function getDetailItem() {
+        var history = getFilteredHistory();
+        if (_detailIdx < 0 || _detailIdx >= history.length) return null;
+        return history[_detailIdx];
+    }
+
+    function detailDownloadImage() {
+        var item = getDetailItem();
+        if (!item) return;
+        var html = '<div style="background:#fcfdfd;padding:16px;font-family:sans-serif;max-width:400px;">' +
+            '<h2 style="text-align:center;font-size:1.2rem;border-bottom:2px solid #e8dcce;padding-bottom:8px;margin-bottom:12px;">Diamond Cost Sheet</h2>';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;"><b>Article:</b> ' + (item.article||'-') + '</div>';
+        if (item.roughAmntCt && item.usdToInr) html += '<div style="display:flex;justify-content:space-between;padding:4px 0;"><b>Rough:</b> $' + item.roughAmntCt + ' @ \u20B9' + item.usdToInr + '</div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;background:#f7e7b4;border:1px solid #d4a843;border-radius:4px;padding:6px 8px;margin:6px 0;"><b>MFG Rough:</b> \u20B9' + (item.mfg||'-') + '</div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;background:#f7e7b4;border:1px solid #d4a843;border-radius:4px;padding:6px 8px;margin:6px 0;"><b>+2 Padtar:</b> \u20B9' + (item.kadhine||'-') + '</div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;background:#f7e7b4;border:1px solid #d4a843;border-radius:4px;padding:6px 8px;margin:6px 0;"><b>Reg Padtar:</b> \u20B9' + (item.regular||'-') + '</div>';
+        if (item.remarks && item.remarks !== '-') html += '<div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:8px;"><b>Notes:</b> ' + item.remarks + '</div>';
+        html += '</div>';
+
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = html;
+        document.body.appendChild(wrapper);
+        html2canvas(wrapper, {scale:2, useCORS:true, backgroundColor:"#fcfdfd"})
+            .then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = (item.article||'CostSheet') + '_Detail.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                document.body.removeChild(wrapper);
+            }).catch(function() { document.body.removeChild(wrapper); });
+    }
+
+    function detailSendText() {
+        var item = getDetailItem();
+        if (!item) return;
+        var txt = '*Diamond Cost Sheet*\n\nArticle: ' + (item.article||'-') + '\n';
+        if (item.roughAmntCt && item.usdToInr) txt += 'Rough: $' + item.roughAmntCt + ' @ \u20B9' + item.usdToInr + '\n';
+        txt += '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n';
+        txt += '*MFG Rough: \u20B9' + (item.mfg||'-') + '*\n';
+        txt += '*+2 Padtar: \u20B9' + (item.kadhine||'-') + '*\n';
+        txt += '*Regular Padtar: \u20B9' + (item.regular||'-') + '*\n';
+        txt += '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n';
+        if (item.remarks && item.remarks !== '-') txt += 'Notes: ' + item.remarks + '\n';
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+    }
+
+    function shareLogEntry(idx) {
+        var history = getFilteredHistory();
+        if (idx < 0 || idx >= history.length) return;
+        var item = history[idx];
+        var txt = '*Diamond Cost Sheet*\n\nArticle: ' + (item.article||'-') + '\n';
+        txt += '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n';
+        txt += '*MFG Rough: \u20B9' + (item.mfg||'-') + '*\n';
+        txt += '*+2 Padtar: \u20B9' + (item.kadhine||'-') + '*\n';
+        txt += '*Regular Padtar: \u20B9' + (item.regular||'-') + '*\n';
+        txt += '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n';
+        if (item.remarks && item.remarks !== '-') txt += 'Notes: ' + item.remarks;
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+    }
+
+    var WA_FIELDS = [
+        {id:'article', label:'Article Name', def:true},
+        {id:'roughAmntCt', label:'Rough Amnt/CT ($) & Rate', def:true},
+        {id:'roughAmntInr', label:'Rough Amnt Inr', def:false},
+        {id:'roughExpense', label:'Rough Expense', def:true},
+        {id:'finalAmnt', label:'Final Amount', def:true},
+        {id:'roughSell', label:'Rough Sell Deduction', def:true},
+        {id:'roughFlat', label:'Rough Flat', def:false},
+        {id:'extraSell', label:'Extra Sell', def:false},
+        {id:'totalLess', label:'Total Less', def:true},
+        {id:'roughPadtar', label:'Rough Padtar', def:false},
+        {id:'roughOut', label:'Rough Out %', def:true},
+        {id:'mfgRough', label:'MFG Rough', def:true},
+        {id:'kadhinePadtar', label:'+2 Kadhine Padtar', def:true},
+        {id:'regularPadtar', label:'Regular Padtar', def:true},
+        {id:'remarks', label:'Remarks / Notes', def:true}
+    ];
+
+    function getWATemplate() {
+        var saved = localStorage.getItem('waTemplate');
+        if (saved) return JSON.parse(saved);
+        var defs = {};
+        WA_FIELDS.forEach(function(f) { defs[f.id] = f.def; });
+        return defs;
+    }
+
+    function saveWATemplate() {
+        var cfg = {};
+        WA_FIELDS.forEach(function(f) {
+            var cb = document.getElementById('wa_cb_' + f.id);
+            cfg[f.id] = cb ? cb.checked : f.def;
+        });
+        localStorage.setItem('waTemplate', JSON.stringify(cfg));
+        renderWAPreview();
+        autoSync();
+    }
+
+    function renderWAFields() {
+        var cfg = getWATemplate();
+        var container = document.getElementById('waFieldList');
+        if (!container) return;
+        var html = '';
+        WA_FIELDS.forEach(function(f) {
+            var checked = cfg[f.id] !== undefined ? cfg[f.id] : f.def;
+            html += '<div class="wa-field-row">' +
+                '<input type="checkbox" id="wa_cb_' + f.id + '" ' + (checked ? 'checked' : '') + ' onchange="renderWAPreview()">' +
+                '<label for="wa_cb_' + f.id + '">' + f.label + '</label></div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function buildWAMessage() {
+        var cfg = getWATemplate();
+        var lines = [];
+        lines.push('*Diamond Cost Sheet*');
+        lines.push('');
+
+        if (cfg.article) {
+            var a = document.getElementById('articleName').value;
+            lines.push('Article: ' + a);
+        }
+        if (cfg.roughAmntCt) {
+            var r = document.getElementById('roughAmntCt').value;
+            var u = document.getElementById('usdToInr').value;
+            lines.push('Rough: $' + r + ' @ \u20B9' + u);
+        }
+        if (cfg.roughAmntInr) {
+            var ri = document.getElementById('roughAmntInr').innerText;
+            lines.push('Rough Inr: \u20B9' + ri);
+        }
+        if (cfg.roughExpense) {
+            var ep = document.getElementById('roughExpensePct').value;
+            var ev = document.getElementById('roughExpenseVal').innerText;
+            lines.push('Expense: ' + ep + '% (\u20B9' + ev + ')');
+        }
+        if (cfg.finalAmnt) {
+            var fa = document.getElementById('finalAmnt').innerText;
+            lines.push('*Final Amount: \u20B9' + fa + '*');
+        }
+        lines.push('wa_sep');
+
+        if (cfg.roughSell) {
+            var sp = document.getElementById('roughSellPct').value;
+            var sr = document.getElementById('roughSellRate').value;
+            var sv = document.getElementById('roughSellVal').innerText;
+            lines.push('Sell: ' + sp + '% \u00D7 ' + sr + ' = \u20B9' + sv);
+        }
+        if (cfg.roughFlat) {
+            var fp = document.getElementById('roughFlat').value;
+            var fr = document.getElementById('roughFlatRate').value;
+            var fv = document.getElementById('roughFlatVal').innerText;
+            lines.push('Flat: ' + fp + ' \u00D7 ' + fr + ' = \u20B9' + fv);
+        }
+        if (cfg.extraSell) {
+            var ep2 = document.getElementById('extraSell').value;
+            var er = document.getElementById('extraSellRate').value;
+            var ev2 = document.getElementById('extraSellVal').innerText;
+            lines.push('Extra: ' + ep2 + ' \u00D7 ' + er + ' = \u20B9' + ev2);
+        }
+        if (cfg.totalLess) {
+            var tl = document.getElementById('totalLessVal').innerText;
+            lines.push('Total Less: \u20B9' + tl);
+        }
+        if (cfg.roughPadtar) {
+            var rp = document.getElementById('roughPadtar').innerText;
+            lines.push('Rough Padtar: \u20B9' + rp);
+        }
+        if (cfg.roughOut) {
+            var ro = document.getElementById('roughOut').value;
+            lines.push('Rough Out: ' + ro + '%');
+        }
+        if (cfg.mfgRough) {
+            var mr = document.getElementById('mfgRough').innerText;
+            lines.push('*MFG Rough: \u20B9' + mr + '*');
+        }
+        lines.push('wa_sep');
+
+        if (cfg.kadhinePadtar) {
+            var kp = document.getElementById('kadhinePadtar').innerText;
+            var ks = document.getElementById('kadhineSize').value;
+            var kpo = document.getElementById('kadhinePoPct').value;
+            var km = document.getElementById('kadhineMajuri').value;
+            lines.push('+2: R' + ks + ' PO' + kpo + '% Maj' + km + ' \u2192 *\u20B9' + kp + '*');
+        }
+        if (cfg.regularPadtar) {
+            var rp2 = document.getElementById('regularPadtar').innerText;
+            var rs = document.getElementById('regularSize').value;
+            var rpo = document.getElementById('regularPoPct').value;
+            var rm = document.getElementById('regularMajuri').value;
+            lines.push('Reg: R' + rs + ' PO' + rpo + '% Maj' + rm + ' \u2192 *\u20B9' + rp2 + '*');
+        }
+        if (cfg.remarks) {
+            var notes = document.getElementById('remarks').value || 'None';
+            lines.push('wa_sep');
+            lines.push('Notes: ' + notes);
+        }
+
+        return lines.join('\n').replace(/\nwa_sep\n/g, '\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n');
+    }
+
+    function fetchLiveRate() {
+        var btn = document.querySelector('.btn-fetch');
+        if (btn) btn.innerText = "Load...";
+        fetch('https://open.er-api.com/v6/latest/USD')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && data.rates && data.rates.INR) {
+                    document.getElementById('usdToInr').value = data.rates.INR.toFixed(2);
+                    calculate();
+                    if (btn) { btn.innerText = "Fetched!"; setTimeout(function() { btn.innerText = "Fetch Live"; }, 1500); }
+                }
+            })
+            .catch(function() {
+                alert("Exchange rate server unreachable. Enter value manually.");
+                if (btn) btn.innerText = "Fetch Live";
+            });
+    }
+
+    function renderWAPreview() {
+        var el = document.getElementById('waPreview');
+        if (!el) return;
+        var txt = buildWAMessage();
+        el.value = txt;
+    }
+
+    function shareWhatsAppText() {
+        var txt = buildWAMessage();
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+    }
+
+    function sendWAPreview() {
+        var el = document.getElementById('waPreview');
+        var txt = el ? el.value : buildWAMessage();
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+    }
+
+    function exportToCSV() {
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        if (history.length === 0) return alert("No calculations logged yet.");
+        var csv = "Time,Article,Rough Amnt/CT,USD to INR,Expense%,Sell%,Sell Rate,Flat,Flat Rate,Extra,Extra Rate,Rough Out%,MFG Rough,+2 Padtar,Reg Padtar,+2 Size,+2 PO%,+2 Majuri,Reg Size,Reg PO%,Reg Majuri,Remarks\n";
+        history.forEach(function(r) {
+            csv += '"' + (r.ts_display||r.timestamp||'') + '","' + (r.article||'') + '","' + (r.roughAmntCt||'') + '","' + (r.usdToInr||'') + '","' + (r.roughExpensePct||'') + '"';
+            csv += ',"' + (r.roughSellPct||'') + '","' + (r.roughSellRate||'') + '","' + (r.roughFlat||'') + '","' + (r.roughFlatRate||'') + '","' + (r.extraSell||'') + '","' + (r.extraSellRate||'') + '"';
+            csv += ',"' + (r.roughOut||'') + '","' + (r.mfg||'') + '","' + (r.kadhine||'') + '","' + (r.regular||'') + '"';
+            csv += ',"' + (r.kadhineSize||'') + '","' + (r.kadhinePoPct||'') + '","' + (r.kadhineMajuri||'') + '","' + (r.regularSize||'') + '","' + (r.regularPoPct||'') + '","' + (r.regularMajuri||'') + '"';
+            csv += ',"' + (r.remarks||'') + '"\n';
+        });
+        var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", "Diamond_Yield_History.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadImage() {
+        var zone = document.getElementById('shareable-zone');
+        var article = document.getElementById('articleName').value || 'CostSheet';
+        zone.classList.add('hide-in-screenshot');
+        html2canvas(zone, {scale:2, useCORS:true, backgroundColor:"#fcfdfd", windowWidth:420})
+            .then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = article + '_CostSheet.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                zone.classList.remove('hide-in-screenshot');
+            }).catch(function() { zone.classList.remove('hide-in-screenshot'); });
+    }
+
+    function shareImage() {
+        var zone = document.getElementById('shareable-zone');
+        var article = document.getElementById('articleName').value || 'CostSheet';
+        zone.classList.add('hide-in-screenshot');
+        html2canvas(zone, {scale:2, useCORS:true, backgroundColor:"#fcfdfd", windowWidth:420})
+            .then(function(canvas) {
+                zone.classList.remove('hide-in-screenshot');
+                canvas.toBlob(function(blob) {
+                    if (navigator.share && navigator.canShare) {
+                        var file = new File([blob], article + '_CostSheet.png', {type:'image/png'});
+                        navigator.share({files:[file], title:'Diamond Cost Sheet', text:'Cost sheet for ' + article}).catch(function(){});
+                    } else {
+                        var link = document.createElement('a');
+                        link.download = article + '_CostSheet.png';
+                        link.href = URL.createObjectURL(blob);
+                        link.click();
+                    }
+                });
+            }).catch(function() { zone.classList.remove('hide-in-screenshot'); });
+    }
+
+    function printPDF() {
+        window.print();
+    }
+
+    function exportAllData() {
+        var data = {
+            diamondHistory: JSON.parse(localStorage.getItem('diamondHistory') || '[]'),
+            articleMaster: JSON.parse(localStorage.getItem('articleMaster') || '[]'),
+            waTemplate: JSON.parse(localStorage.getItem('waTemplate') || '{}'),
+            exportedAt: new Date().toISOString()
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+        var link = document.createElement('a');
+        link.download = 'R2P_Backup_' + new Date().toISOString().slice(0,10) + '.json';
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        document.getElementById('syncStatus').innerText = 'Exported successfully!';
+    }
+
+    function importAllData(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var data = JSON.parse(e.target.result);
+                if (data.diamondHistory) localStorage.setItem('diamondHistory', JSON.stringify(data.diamondHistory));
+                if (data.articleMaster) localStorage.setItem('articleMaster', JSON.stringify(data.articleMaster));
+                if (data.waTemplate) localStorage.setItem('waTemplate', JSON.stringify(data.waTemplate));
+                document.getElementById('syncStatus').innerText = 'Imported ' + (data.diamondHistory ? data.diamondHistory.length : 0) + ' entries, articles, and settings.';
+                loadArticleDropdown();
+                renderLogs();
+                autoSync();
+            } catch(err) {
+                document.getElementById('syncStatus').innerText = 'Error: invalid file.';
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    var COMPARE_FIELDS = [
+        {id:'articleName', type:'select', label:'Article'},
+        {id:'roughAmntCt', type:'num', label:'$ / CT', val:28},
+        {id:'usdToInr', type:'num', label:'USD/INR', val:96},
+        {id:'roughExpensePct', type:'num', label:'Exp %', val:2},
+        {id:'roughSellPct', type:'num', label:'Sell %', val:5},
+        {id:'roughSellRate', type:'num', label:'Sell Rt', val:8000},
+        {id:'roughFlat', type:'num', label:'Flat', val:0},
+        {id:'roughFlatRate', type:'num', label:'Flat Rt', val:0},
+        {id:'extraSell', type:'num', label:'Extra', val:0},
+        {id:'extraSellRate', type:'num', label:'Ex Rt', val:0},
+        {id:'roughOut', type:'num', label:'Out %', val:20},
+        {id:'kadhineSize', type:'num', label:'+2 Sz', val:50},
+        {id:'kadhinePoPct', type:'num', label:'+2 PO', val:25},
+        {id:'kadhineMajuri', type:'num', label:'+2 Maj', val:65},
+        {id:'regularSize', type:'num', label:'Reg Sz', val:50},
+        {id:'regularPoPct', type:'num', label:'Reg PO', val:25},
+        {id:'regularMajuri', type:'num', label:'Reg Maj', val:65}
+    ];
+
+    function renderCompare(prefix) {
+        var container = document.getElementById('compareFields' + prefix.toUpperCase());
+        if (!container) return;
+        var arts = getArticles();
+        var html = '';
+        html += '<div class="compare-section-title">Inputs</div>';
+        COMPARE_FIELDS.forEach(function(f) {
+            var id = prefix + '_' + f.id;
+            if (f.type === 'select') {
+                var opts = '';
+                arts.forEach(function(a) { opts += '<option value="' + a.replace(/'/g,'&#39;') + '">' + a + '</option>'; });
+                html += '<div class="compare-field-row"><span class="c-label">' + f.label + '</span><select id="' + id + '" onchange="compareCalc(\'' + prefix + '\')">' + opts + '</select></div>';
+            } else {
+                html += '<div class="compare-field-row"><span class="c-label">' + f.label + '</span><input type="number" id="' + id + '" value="' + (f.val||'') + '" step="0.01" oninput="compareCalc(\'' + prefix + '\')"></div>';
+            }
+        });
+        html += '<div class="compare-section-title">Results</div>';
+        html += '<div class="compare-field-row"><span class="c-label">Rgh Inr</span><span class="c-val" id="' + prefix + '_roughAmntInr">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">Final</span><span class="c-val c-gold" id="' + prefix + '_finalAmnt">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">Less</span><span class="c-val" id="' + prefix + '_totalLess">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">Padtar</span><span class="c-val" id="' + prefix + '_roughPadtar">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">MFG</span><span class="c-val c-gold" id="' + prefix + '_mfgRough">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">+2 Pad</span><span class="c-val c-gold" id="' + prefix + '_kadhinePadtar">0</span></div>';
+        html += '<div class="compare-field-row"><span class="c-label">Reg Pad</span><span class="c-val c-gold" id="' + prefix + '_regularPadtar">0</span></div>';
+        container.innerHTML = html;
+    }
+
+    function compareCalc(prefix) {
+        var g = function(id) { return parseFloat(document.getElementById(prefix + '_' + id).value) || 0; };
+        var r = g('roughAmntCt') * g('usdToInr');
+        document.getElementById(prefix + '_roughAmntInr').innerText = Math.round(r);
+        var e = (r * g('roughExpensePct')) / 100;
+        var f = Math.round(r + e);
+        document.getElementById(prefix + '_finalAmnt').innerText = f;
+        var sv = Math.round((g('roughSellPct') * g('roughSellRate')) / 100);
+        var fv = Math.round((g('roughFlat') * g('roughFlatRate')) / 100);
+        var ev = Math.round((g('extraSell') * g('extraSellRate')) / 100);
+        var tl = sv + fv + ev;
+        document.getElementById(prefix + '_totalLess').innerText = tl;
+        var rp = f - tl;
+        document.getElementById(prefix + '_roughPadtar').innerText = rp;
+        var mfg = Math.round(rp / (1 - (g('roughOut') / 100)));
+        document.getElementById(prefix + '_mfgRough').innerText = mfg;
+        var ks = g('kadhineSize'), kp = g('kadhinePoPct'), km = g('kadhineMajuri');
+        document.getElementById(prefix + '_kadhinePadtar').innerText = (ks > 0 && kp > 0) ? Math.round((((mfg*100)/ks)/(kp/100)) + km) : 0;
+        var rs = g('regularSize'), rpo = g('regularPoPct'), rm = g('regularMajuri');
+        document.getElementById(prefix + '_regularPadtar').innerText = (rs > 0 && rpo > 0) ? Math.round((((mfg*100)/rs)/(rpo/100)) + rm) : 0;
+    }
+
+    function compareSave(prefix) {
+        var ts = new Date().toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+        var g = function(id) { return document.getElementById(prefix + '_' + id); };
+        var article = g('articleName') ? g('articleName').value : '-';
+        var mfg = document.getElementById(prefix + '_mfgRough').innerText;
+        var kadhine = document.getElementById(prefix + '_kadhinePadtar').innerText;
+        var regular = document.getElementById(prefix + '_regularPadtar').innerText;
+        var record = {
+            id: Date.now() + '_' + Math.random().toString(36).substr(2,6),
+            timestamp: new Date().toISOString(),
+            ts_display: ts,
+            article: article,
+            mfg: mfg, kadhine: kadhine, regular: regular, remarks: 'From Compare ' + prefix.toUpperCase(),
+            roughAmntCt: g('roughAmntCt').value, usdToInr: g('usdToInr').value,
+            roughExpensePct: g('roughExpensePct').value,
+            roughSellPct: g('roughSellPct').value, roughSellRate: g('roughSellRate').value,
+            roughFlat: g('roughFlat').value, roughFlatRate: g('roughFlatRate').value,
+            extraSell: g('extraSell').value, extraSellRate: g('extraSellRate').value,
+            roughOut: g('roughOut').value,
+            kadhineSize: g('kadhineSize').value, kadhinePoPct: g('kadhinePoPct').value, kadhineMajuri: g('kadhineMajuri').value,
+            regularSize: g('regularSize').value, regularPoPct: g('regularPoPct').value, regularMajuri: g('regularMajuri').value
+        };
+        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        history.unshift(record);
+        localStorage.setItem('diamondHistory', JSON.stringify(history));
+        renderLogs();
+        autoSync();
+    }
+
+    function compareWA(prefix) {
+        var article = (document.getElementById(prefix + '_articleName') || {}).value || 'Compare';
+        var mfg = document.getElementById(prefix + '_mfgRough').innerText;
+        var kp = document.getElementById(prefix + '_kadhinePadtar').innerText;
+        var rp = document.getElementById(prefix + '_regularPadtar').innerText;
+        var txt = '*Diamond Cost Sheet - ' + prefix.toUpperCase() + '*\n\nArticle: ' + article + '\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n*MFG: \u20B9' + mfg + '*\n*+2: \u20B9' + kp + '*\n*Reg: \u20B9' + rp + '*';
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+    }
+
+    function compareImg(prefix) {
+        var side = document.getElementById('compare' + prefix.toUpperCase());
+        if (!side) return;
+        var article = (document.getElementById(prefix + '_articleName') || {}).value || 'Compare';
+        html2canvas(side, {scale:2, useCORS:true, backgroundColor:"#fcfdfd"})
+            .then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = article + '_' + prefix.toUpperCase() + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+    }
+
+    function compareLoad(prefix) {
+        var g = function(id) { return document.getElementById(prefix + '_' + id); };
+        if (g('articleName')) {
+            var sel = document.getElementById('articleName');
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === g('articleName').value) { sel.selectedIndex = i; break; }
+            }
+        }
+        var map = {
+            roughAmntCt:'roughAmntCt', usdToInr:'usdToInr', roughExpensePct:'roughExpensePct',
+            roughSellPct:'roughSellPct', roughSellRate:'roughSellRate',
+            roughFlat:'roughFlat', roughFlatRate:'roughFlatRate',
+            extraSell:'extraSell', extraSellRate:'extraSellRate', roughOut:'roughOut',
+            kadhineSize:'kadhineSize', kadhinePoPct:'kadhinePoPct', kadhineMajuri:'kadhineMajuri',
+            regularSize:'regularSize', regularPoPct:'regularPoPct', regularMajuri:'regularMajuri'
+        };
+        for (var k in map) {
+            var el = document.getElementById(map[k]);
+            var src = g(k);
+            if (el && src) el.value = src.value;
+        }
+        showView('costsheet');
+        calculate();
+    }
+
+    window.onload = function() {
+        // Migrate old entries to have ids
+        var hist = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        var changed = false;
+        hist.forEach(function(r) {
+            if (!r.id) { r.id = Date.now() + '_' + Math.random().toString(36).substr(2,6); changed = true; }
+            if (!r.ts_display && r.timestamp) {
+                var d = new Date(r.timestamp);
+                r.ts_display = isNaN(d) ? r.timestamp : d.toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+            }
+            if (r.timestamp && isNaN(new Date(r.timestamp))) {
+                r.timestamp = new Date().toISOString();
+            }
+        });
+        if (changed) localStorage.setItem('diamondHistory', JSON.stringify(hist));
+        initFirebase();
+        loadArticleDropdown();
+        calculate();
+        renderLogs();
+        var inputs = document.querySelectorAll('#view-costsheet input, #view-costsheet select');
+        inputs.forEach(function(inp) { inp.addEventListener('input', calculate); });
+    };
+</script>
+</body>
+</html>
