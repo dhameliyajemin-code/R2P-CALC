@@ -2006,6 +2006,7 @@
         if (_viewEntryIdx < 0) return;
         var history = getFilteredHistory();
         var item = history[_viewEntryIdx];
+        _editIdx = _viewEntryIdx; // Set edit index for replace/copy
         // Load into cost sheet
         if (item.roughAmntCt) document.getElementById('roughAmntCt').value = item.roughAmntCt;
         if (item.usdToInr) document.getElementById('usdToInr').value = item.usdToInr;
