@@ -923,6 +923,8 @@
         #aiTableWrap th { background:var(--lb-mid); font-weight:700; }
         /* Install btn visibility */
         #installBtn { display:none; }
+        /* Selection bar */
+        #selectionBar { display:none; }
     </style>
 </head>
 <body>
@@ -1122,12 +1124,15 @@
 
         <!-- Masters Section -->
         <div style="background:var(--bg-crystal);border:1px solid var(--border-shimmer);border-radius:10px;padding:10px;margin-top:10px;">
-            <h3 style="font-size:0.85rem;margin-bottom:6px;">▤ Masters</h3>
-            <p style="font-size:0.7rem;color:var(--lb-deep);margin-bottom:8px;">Article master, WhatsApp templates, data sync.</p>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-                <button onclick="openArticleMaster()" style="width:100%;height:36px;background:var(--lb-deep);color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>▤</span> Rough Article Master</button>
-                <button onclick="showView('whatsappmaster')" style="width:100%;height:36px;background:#1da851;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>💬</span> WhatsApp Text Master</button>
-                <button onclick="showView('datasync')" style="width:100%;height:36px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>☁</span> Data Sync</button>
+            <h3 style="font-size:0.85rem;margin-bottom:6px;">▤ Rough Article Master</h3>
+            <div style="display:flex;gap:4px;margin-bottom:6px;">
+                <input type="text" id="adminNewArticle" placeholder="Add new article..." style="flex:1;height:32px;border:1px solid var(--border-shimmer);border-radius:6px;padding:0 8px;font-size:0.7rem;">
+                <button onclick="adminAddArticle()" style="height:32px;background:var(--success-clean);color:#fff;border:none;border-radius:6px;font-weight:bold;padding:0 12px;cursor:pointer;font-size:0.7rem;">Add</button>
+            </div>
+            <div id="adminArticleList" style="margin-bottom:6px;max-height:140px;overflow-y:auto;"></div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;border-top:1px solid var(--border-shimmer);padding-top:8px;">
+                <button onclick="showView('whatsappmaster')" style="width:100%;height:34px;background:#1da851;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.7rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>💬</span> WhatsApp Text Master</button>
+                <button onclick="showView('datasync')" style="width:100%;height:34px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.7rem;display:flex;align-items:center;justify-content:center;gap:6px;"><span>☁</span> Data Sync</button>
             </div>
         </div>
     </div>
@@ -1374,6 +1379,14 @@
             <h3>Calculation Logs</h3>
             <button class="btn-export" onclick="exportToCSV()">Export Excel</button>
         </div>
+        <div id="selectionBar" style="display:none;padding:6px;margin-bottom:6px;background:var(--lb-mid);border-radius:6px;font-size:0.7rem;font-weight:700;color:var(--lb-deep);">
+            <span id="selCount">0 selected</span>
+            <div style="display:flex;gap:4px;margin-top:4px;">
+                <button onclick="exportSelectedCSV()" style="flex:1;height:28px;background:var(--success-clean);color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;font-size:0.6rem;">📊 Excel</button>
+                <button onclick="exportSelectedImages()" style="flex:1;height:28px;background:#7c3aed;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;font-size:0.6rem;">🖼 Images</button>
+                <button onclick="deleteSelected()" style="flex:1;height:28px;background:#a33;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;font-size:0.6rem;">✕ Delete</button>
+            </div>
+        </div>
         <div class="filter-bar">
             <select id="filterMonth" onchange="onMonthChange()">
                 <option value="all">All Months</option>
@@ -1387,6 +1400,7 @@
             <table id="logTable" class="log-table-actions">
                 <thead>
                     <tr>
+                        <th style="width:26px;"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll(this.checked)" style="width:14px;height:14px;cursor:pointer;"></th>
                         <th>Time</th>
                         <th>Article</th>
                         <th>MFG</th>
@@ -1631,7 +1645,7 @@
             });
             runAIAnalysis();
         }
-        if (name === 'admin') { syncDefaultsUI(); }
+        if (name === 'admin') { syncDefaultsUI(); adminRenderArticles(); }
         if (name === 'costsheet') {
             // If entering fresh from admin, auto-fill handled by newCostSheet
         }
@@ -1745,6 +1759,45 @@
     function openArticleMaster() {
         document.getElementById('articleMasterOverlay').classList.add('show');
         renderArticleList();
+    }
+
+    function adminRenderArticles() {
+        var container = document.getElementById('adminArticleList');
+        if (!container) return;
+        var arts = getArticles();
+        if (arts.length === 0) {
+            container.innerHTML = '<div style="font-size:0.65rem;color:var(--lb-deep);padding:4px;">No articles yet.</div>';
+            return;
+        }
+        var html = '';
+        arts.forEach(function(a) {
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px solid var(--lb-mid);font-size:0.7rem;">' +
+                '<span>' + a + '</span>' +
+                '<button onclick="adminDeleteArticle(\'' + a.replace(/'/g,"\\'") + '\')" style="background:none;border:none;color:#a33;font-weight:800;cursor:pointer;font-size:0.8rem;">✕</button></div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function adminAddArticle() {
+        var input = document.getElementById('adminNewArticle');
+        var val = input.value.trim();
+        if (!val) return;
+        var arts = getArticles();
+        if (arts.indexOf(val) !== -1) { alert('Article already exists.'); return; }
+        arts.push(val);
+        saveArticles(arts);
+        input.value = '';
+        adminRenderArticles();
+        loadArticleDropdown();
+    }
+
+    function adminDeleteArticle(name) {
+        var arts = getArticles();
+        var idx = arts.indexOf(name);
+        if (idx !== -1) arts.splice(idx, 1);
+        saveArticles(arts);
+        adminRenderArticles();
+        loadArticleDropdown();
     }
 
     function closeArticleMaster() {
@@ -2131,13 +2184,15 @@
         var tbody = document.querySelector('#logTable tbody');
         if (!tbody) return;
         if (history.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="log-empty">No entries match filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="log-empty">No entries match filters.</td></tr>';
+            document.getElementById('selectionBar').style.display = 'none';
             return;
         }
         tbody.innerHTML = '';
         history.forEach(function(item, idx) {
             var disp = item.ts_display || (item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '-');
             tbody.innerHTML += '<tr>' +
+                '<td style="text-align:center;"><input type="checkbox" class="entry-check" data-id="' + item.id + '" onchange="updateSelectionBar()" style="width:14px;height:14px;cursor:pointer;"></td>' +
                 '<td style="white-space:nowrap;font-size:0.7rem;">' + disp + '</td>' +
                 '<td><b>' + (item.article||'-') + '</b></td>' +
                 '<td>' + (item.mfg||'-') + '</td>' +
@@ -2149,6 +2204,83 @@
                     '<button class="log-action-btn" onclick="shareLogEntry(' + idx + ')" title="WhatsApp Share" style="margin-left:2px;">💬</button>' +
                     '<button class="log-action-btn" onclick="deleteEntry(' + idx + ')" title="Clear" style="margin-left:2px;">✕</button>' +
                 '</td></tr>';
+        });
+        document.getElementById('selectAllCheck').checked = false;
+        updateSelectionBar();
+    }
+
+    function toggleSelectAll(checked) {
+        document.querySelectorAll('.entry-check').forEach(function(cb) { cb.checked = checked; });
+        updateSelectionBar();
+    }
+
+    function updateSelectionBar() {
+        var checks = document.querySelectorAll('.entry-check:checked');
+        var bar = document.getElementById('selectionBar');
+        var count = checks.length;
+        document.getElementById('selCount').innerText = count + ' selected';
+        bar.style.display = count > 0 ? 'block' : 'none';
+    }
+
+    function getSelectedIds() {
+        var ids = [];
+        document.querySelectorAll('.entry-check:checked').forEach(function(cb) { ids.push(cb.getAttribute('data-id')); });
+        return ids;
+    }
+
+    function getSelectedEntries() {
+        var ids = getSelectedIds();
+        var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+        return all.filter(function(e) { return ids.indexOf(e.id) >= 0; });
+    }
+
+    function exportSelectedCSV() {
+        var selected = getSelectedEntries();
+        if (selected.length === 0) { alert('No entries selected.'); return; }
+        exportToCSV(selected);
+    }
+
+    function exportSelectedImages() {
+        var selected = getSelectedEntries();
+        if (selected.length === 0) { alert('No entries selected.'); return; }
+        var i = 0;
+        function genNext() {
+            if (i >= selected.length) { showToast('Images downloading...', null); return; }
+            var item = selected[i];
+            i++;
+            genEntryImage(item, genNext);
+        }
+        genNext();
+    }
+
+    function genEntryImage(item, cb) {
+        var zone = document.createElement('div');
+        zone.style.cssText = 'width:380px;padding:14px;background:#fcfdfd;font-family:sans-serif;font-size:13px;';
+        zone.innerHTML = buildEntryHTML(item);
+        document.body.appendChild(zone);
+        setTimeout(function() {
+            html2canvas(zone, {scale:2, useCORS:true, backgroundColor:'#fcfdfd'})
+                .then(function(canvas) {
+                    var link = document.createElement('a');
+                    link.download = (item.article||'entry') + '_' + (item.id||Date.now()).toString().substr(0,8) + '.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    document.body.removeChild(zone);
+                    if (cb) cb();
+                });
+        }, 200);
+    }
+
+    function deleteSelected() {
+        var ids = getSelectedIds();
+        if (ids.length === 0) return;
+        requirePIN(function() {
+            if (!confirm('Delete ' + ids.length + ' selected entries?')) return;
+            var all = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+            all = all.filter(function(h) { return ids.indexOf(h.id) < 0; });
+            localStorage.setItem('diamondHistory', JSON.stringify(all));
+            renderLogs();
+            autoSync();
         });
     }
 
@@ -2574,8 +2706,8 @@
         window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
     }
 
-    function exportToCSV() {
-        var history = JSON.parse(localStorage.getItem('diamondHistory')) || [];
+    function exportToCSV(filtered) {
+        var history = filtered || JSON.parse(localStorage.getItem('diamondHistory')) || [];
         if (history.length === 0) return alert("No calculations logged yet.");
         var csv = "Time,Article,Rough Amnt/CT,USD to INR,Expense%,Sell%,Sell Rate,Flat,Flat Rate,Extra,Extra Rate,Rough Out%,MFG Rough,+2 Padtar,Reg Padtar,+2 Size,+2 PO%,+2 Majuri,Reg Size,Reg PO%,Reg Majuri,Remarks\n";
         history.forEach(function(r) {
