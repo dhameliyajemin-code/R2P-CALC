@@ -1691,6 +1691,21 @@
                    'kadhinePiece','kadhineCt','kadhineSize','kadhinePoPct','kadhineMajuri',
                    'regularPiece','regularCt','regularSize','regularPoPct','regularMajuri',
                    'remarks'];
+
+    function imgFilename(article, suffix) {
+        var d = new Date();
+        var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        return (article||'CostSheet').replace(/[^a-zA-Z0-9]/g,'_') + '_' + ds + (suffix ? '_' + suffix : '') + '.png';
+    }
+
+    function newCostSheet() {
+        showView('costsheet');
+        // Clear all fields
+        var ids = ['roughAmntCt','usdToInr','roughExpensePct','roughSellPct','roughSellRate',
+                   'roughFlat','roughFlatRate','extraSell','extraSellRate','roughOut',
+                   'kadhinePiece','kadhineCt','kadhineSize','kadhinePoPct','kadhineMajuri',
+                   'regularPiece','regularCt','regularSize','regularPoPct','regularMajuri',
+                   'remarks'];
         ids.forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
@@ -2260,7 +2275,7 @@
             html2canvas(zone, {scale:2, useCORS:true, backgroundColor:'#fcfdfd'})
                 .then(function(canvas) {
                     var link = document.createElement('a');
-                    link.download = (item.article||'entry') + '_' + (item.id||Date.now()).toString().substr(0,8) + '.png';
+                    link.download = imgFilename(item.article);
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     document.body.removeChild(zone);
@@ -2526,7 +2541,7 @@
         html2canvas(wrapper, {scale:2, useCORS:true, backgroundColor:"#fcfdfd"})
             .then(function(canvas) {
                 var link = document.createElement('a');
-                link.download = (item.article||'CostSheet') + '_Detail.png';
+                link.download = imgFilename(item.article, 'Detail');
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 document.body.removeChild(wrapper);
@@ -2764,7 +2779,7 @@
         html2canvas(zone, {scale:2, useCORS:true, backgroundColor:"#fcfdfd", windowWidth:420})
             .then(function(canvas) {
                 var link = document.createElement('a');
-                link.download = article + '_CostSheet.png';
+                link.download = imgFilename(article);
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 zone.classList.remove('hide-in-screenshot');
@@ -2784,7 +2799,7 @@
                         navigator.share({files:[file], title:'Diamond Cost Sheet', text:'Cost sheet for ' + article}).catch(function(){});
                     } else {
                         var link = document.createElement('a');
-                        link.download = article + '_CostSheet.png';
+                        link.download = imgFilename(article);
                         link.href = URL.createObjectURL(blob);
                         link.click();
                     }
@@ -2948,7 +2963,7 @@
         html2canvas(side, {scale:2, useCORS:true, backgroundColor:"#fcfdfd"})
             .then(function(canvas) {
                 var link = document.createElement('a');
-                link.download = article + '_' + prefix.toUpperCase() + '.png';
+                link.download = imgFilename(article, prefix.toUpperCase());
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
