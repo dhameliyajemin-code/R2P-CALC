@@ -1978,8 +1978,8 @@
         document.getElementById('yieldLess').innerText = totalLessVal;
         document.getElementById('yieldNet').innerText = (100 - roughOut).toFixed(1) + "%";
 
-        calcBatch('kadhine', Math.round(roughAmntInr));
-        calcBatch('regular', Math.round(roughAmntInr));
+        calcBatch('kadhine', Math.round(finalAmnt));
+        calcBatch('regular', Math.round(finalAmnt));
     }
 
     function calcBatch(prefix, roughAmntInr) {
